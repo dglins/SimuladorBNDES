@@ -77,7 +77,7 @@ class SimuladorSudes:
                     "Fator 4": fator_4,
                     "Amortização Principal": "N/A",
                     "Juros BNDES": "N/A",
-                    "Juros BANPARA": "N/A",
+                    "Juros BANCO": "N/A",
                     "Parcela Total": "N/A",
                     "Saldo Devedor": round(self.saldo_devedor, 2)
                 })
