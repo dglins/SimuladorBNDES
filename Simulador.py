@@ -123,7 +123,7 @@ class SimuladorSudes:
                 "Fator 4": fator_4,
                 "Amortização Principal": round(amortizacao_principal, 2) if amortizacao_principal else "N/A",
                 "Juros BNDES": juros_bndes,
-                "Juros BANPARA": juros_banpara,
+                "Juros BANCO": juros_banpara,
                 "Parcela Total": valor_parcela if valor_parcela else "N/A",
                 "Saldo Devedor": round(self.saldo_devedor, 2)
             })
