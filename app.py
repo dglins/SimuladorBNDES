@@ -134,7 +134,7 @@ class SimuladorSudes:
 
 
 # Cria o app usando Streamlit
-st.title("Simulador Sudes")
+st.title("Simulador de Pagamentos BNDES")
 
 # Entradas do usuário para os parâmetros do simulador
 data_contratacao = st.text_input("Data de Contratação (dd/mm/yyyy)", "15/10/2024")
