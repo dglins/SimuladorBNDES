@@ -187,8 +187,8 @@ class SimuladorBNDES:
         if exportar_csv:
             import pandas as pd
             df = pd.DataFrame(resultados)
-            df.to_csv("simulador_sudes_resultados.csv", index=False)
-            print("\nResultados exportados para 'simulador_sudes_resultados.csv'.")
+            df.to_csv("simulador_resultados.csv", index=False)
+            print("\nResultados exportados para 'simulador_resultados.csv'.")
 
     def proxima_data_ipca(self, data_input):
         """
@@ -424,3 +424,23 @@ class SimuladorBNDES:
         # Calcula os juros como saldo_devedor * (fator_banco - 1) e arredonda para 2 casas decimais
         juros_banco = round(saldo_devedor * (fator_banco - 1), 2)
         return juros_banco
+
+
+
+
+
+# Inicializa o simulador com parâmetros
+simulador = SimuladorBNDES(
+    data_contratacao="15/10/2024",      # Data de contratação do financiamento
+    valor_liberado=200000.00,           # Valor liberado (em reais)
+    carencia=3,                         # Período de carência em meses
+    periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
+    prazo_amortizacao=20,               # Prazo de amortização (meses)
+    periodic_amortizacao=3,             # Periodicidade de pagamento de amortização (meses)
+    juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
+    spread_banco_aa=5.75                # Spread do banco anual (% a.a.)
+)
+
+
+
+simulador.exibir_dados_pagamento()
