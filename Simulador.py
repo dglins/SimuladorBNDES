@@ -76,7 +76,7 @@ class SimuladorBNDES:
             print(f"Erro ao buscar IPCA: {e}")
             return 0.44  # Valor padrão em caso de falha
 
-    def exibir_dados_pagamento(self, exportar_csv=False):
+    def exibir_dados_pagamento(self, exportar_csv=False) -> json:
         """
         Exibe os dados de pagamento em formato tabular e opcionalmente exporta para CSV.
         """
@@ -144,7 +144,7 @@ class SimuladorBNDES:
 
             # Calcula juros BNDES e banco
             juros_bndes = self.calcular_juros_bndes(data_vencimento, self.saldo_devedor, fator_4)
-            juros_banco = self.calcular_juros_banco(data_vencimento, self.saldo_devedor, fator_4)
+            juros_banco = self.calcular_juros_banco(data_vencimento, self.saldo_devedor, self.spread_banco_aa)
 
             # Calcula o valor total da parcela
             valor_parcela = None
@@ -441,4 +441,6 @@ simulador = SimuladorBNDES(
 
 
 
-result = simulador.exibir_dados_pagamento()
+resultados = simulador.exibir_dados_pagamento()
+from tabulate import tabulate  # Para visualização tabular no terminal
+print(tabulate(resultados, headers="keys", tablefmt="grid"))
