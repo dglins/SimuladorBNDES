@@ -4,7 +4,6 @@ from pandas import to_datetime
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from lista_feriados import feriados
-from tabulate import tabulate
 
 
 class SimuladorBNDES:
@@ -170,7 +169,7 @@ class SimuladorBNDES:
                 "Saldo Devedor": round(self.saldo_devedor, 2)
             })
 
-            # Exibe dados na tabela
+
             if pagamento_info and pagamento_info["pagar_amortizacao"]:
                 self.atualizar_saldo_devedor(amortizacao_principal)
 
@@ -180,8 +179,7 @@ class SimuladorBNDES:
 
             mes_atual += 1
 
-        # Exibe os resultados no formato tabular
-        print(tabulate(resultados, headers="keys", tablefmt="grid"))
+        return resultados
 
         # Exporta para CSV se solicitado
         if exportar_csv:
@@ -438,9 +436,9 @@ simulador = SimuladorBNDES(
     prazo_amortizacao=20,               # Prazo de amortização (meses)
     periodic_amortizacao=3,             # Periodicidade de pagamento de amortização (meses)
     juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
-    spread_banco_aa=5.75                # Spread do banco anual (% a.a.)
+    spread_banco_aa=5.75              # Spread do banco anual (% a.a.)
 )
 
 
 
-simulador.exibir_dados_pagamento()
+result = simulador.exibir_dados_pagamento()
