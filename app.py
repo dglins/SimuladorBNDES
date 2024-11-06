@@ -146,7 +146,7 @@ periodic_amortizacao = st.number_input("Periodicidade do Pagamento de Amortizaç
 juros_prefixados_aa = st.number_input("Taxa de Juros Prefixados Anual (% a.a.)", min_value=0.0, value=6.31)
 ipca_mensal = st.number_input("Variação Mensal do IPCA (% a.m.)", min_value=0.0, value=0.44)
 spread_bndes_aa = st.number_input("Spread do BNDES Anual (% a.a.)", min_value=0.0, value=1.15)
-spread_banpara_aa = st.number_input("Spread do BANPARA Anual (% a.a.)", min_value=0.0, value=5.75)
+spread_banpara_aa = st.number_input("Spread do BANCO Anual (% a.a.)", min_value=0.0, value=5.75)
 
 # Botão para realizar a simulação
 if st.button("Simular"):
