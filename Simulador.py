@@ -1,3 +1,5 @@
+import requests
+import json
 from pandas import to_datetime
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -5,12 +7,12 @@ from lista_feriados import feriados
 from tabulate import tabulate
 
 
-class SimuladorSudes:
+class SimuladorBNDES:
     def __init__(self, data_contratacao: str, valor_liberado: float, carencia: int,
                  periodic_juros: int, prazo_amortizacao: int,
                  periodic_amortizacao: int, juros_prefixados_aa: float,
-                 ipca_mensal: float, spread_bndes_aa: float, spread_banpara_aa: float):
-        # Inicializa os parâmetros
+                 ipca_mensal: float = None, spread_bndes_aa: float = None, spread_banco_aa: float = None):
+        # Inicializa os parâmetros principais
         self.data_contratacao = datetime.strptime(data_contratacao, "%d/%m/%Y")
         self.valor_liberado = valor_liberado
         self.saldo_devedor = valor_liberado
@@ -19,21 +21,61 @@ class SimuladorSudes:
         self.prazo_amortizacao = prazo_amortizacao
         self.periodic_amortizacao = periodic_amortizacao
         self.juros_prefixados_aa = juros_prefixados_aa
-        self.ipca_mensal = ipca_mensal
-        self.spread_bndes_aa = spread_bndes_aa
-        self.spread_banpara_aa = spread_banpara_aa
+
+        # Busca valores da TLP e IPCA automaticamente, se não fornecidos
+        self.ipca_mensal = ipca_mensal if ipca_mensal is not None else self.obter_ipca()
+        self.spread_bndes_aa = spread_bndes_aa if spread_bndes_aa is not None else self.obter_tlp()
+        self.spread_banco_aa = spread_banco_aa if spread_banco_aa is not None else 5.75  # Default
+
+        # Calcula a quantidade de prestações e converte taxas anuais para mensais
         self.feriados = [to_datetime(f, dayfirst=True).date() for f in feriados]
         self.quantidade_prestacoes = prazo_amortizacao // periodic_amortizacao
         self.quantidade_prestacoes_restantes = prazo_amortizacao // periodic_amortizacao
-
-        # Calcula a quantidade de prestações e converte taxas anuais para mensais
         self.juros_prefixados_am = (1 + juros_prefixados_aa / 100) ** (1 / 12) - 1
-        self.spread_bndes_am = (1 + spread_bndes_aa / 100) ** (1 / 12) - 1
-        self.spread_banpara_am = (1 + spread_banpara_aa / 100) ** (1 / 12) - 1
+        self.spread_bndes_am = (1 + self.spread_bndes_aa / 100) ** (1 / 12) - 1
+        self.spread_banco_am = (1 + self.spread_banco_aa / 100) ** (1 / 12) - 1
         self.taxa_total_mensal = (self.juros_prefixados_am +
                                   self.spread_bndes_am +
-                                  self.spread_banpara_am +
+                                  self.spread_banco_am +
                                   self.ipca_mensal / 100)
+
+    @staticmethod
+    def obter_tlp():
+        """
+        Obtém o valor mais recente da TLP via API do Banco Central.
+        """
+        try:
+            url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.27572/dados/ultimos/1?formato=json"
+            response = requests.get(url)
+            if response.status_code == 200:
+                dados = json.loads(response.text)
+                valor_tlp = float(dados[0]['valor'])
+                return valor_tlp
+            else:
+                print("Erro ao obter a TLP. Verifique a conexão ou o endereço da API.")
+                return 1.15  # Valor padrão em caso de falha
+        except Exception as e:
+            print(f"Erro ao buscar TLP: {e}")
+            return 1.15  # Valor padrão em caso de falha
+
+    @staticmethod
+    def obter_ipca():
+        """
+        Obtém o valor mais recente do IPCA via API do Banco Central.
+        """
+        try:
+            url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json"
+            response = requests.get(url)
+            if response.status_code == 200:
+                dados = json.loads(response.text)
+                valor_ipca = float(dados[0]['valor'])
+                return valor_ipca
+            else:
+                print("Erro ao obter o IPCA. Verifique a conexão ou o endereço da API.")
+                return 0.44  # Valor padrão em caso de falha
+        except Exception as e:
+            print(f"Erro ao buscar IPCA: {e}")
+            return 0.44  # Valor padrão em caso de falha
 
     def exibir_dados_pagamento(self, exportar_csv=False):
         """
@@ -77,7 +119,7 @@ class SimuladorSudes:
                     "Fator 4": fator_4,
                     "Amortização Principal": "N/A",
                     "Juros BNDES": "N/A",
-                    "Juros BANCO": "N/A",
+                    "Juros banco": "N/A",
                     "Parcela Total": "N/A",
                     "Saldo Devedor": round(self.saldo_devedor, 2)
                 })
@@ -101,14 +143,14 @@ class SimuladorSudes:
             if pagamento_info and pagamento_info["pagar_amortizacao"]:
                 amortizacao_principal = self.calcula_amortizacao_principal()
 
-            # Calcula juros BNDES e BANPARA
+            # Calcula juros BNDES e banco
             juros_bndes = self.calcular_juros_bndes(data_vencimento, self.saldo_devedor, fator_4)
-            juros_banpara = self.calcular_juros_banpara(data_vencimento, self.saldo_devedor, fator_4)
+            juros_banco = self.calcular_juros_banco(data_vencimento, self.saldo_devedor, fator_4)
 
             # Calcula o valor total da parcela
             valor_parcela = None
             if data_vencimento:
-                valor_parcela = round((amortizacao_principal or 0) + juros_bndes + juros_banpara, 2)
+                valor_parcela = round((amortizacao_principal or 0) + juros_bndes + juros_banco, 2)
 
             # Armazena os resultados
             resultados.append({
@@ -123,7 +165,7 @@ class SimuladorSudes:
                 "Fator 4": fator_4,
                 "Amortização Principal": round(amortizacao_principal, 2) if amortizacao_principal else "N/A",
                 "Juros BNDES": juros_bndes,
-                "Juros BANCO": juros_banpara,
+                "Juros banco": juros_banco,
                 "Parcela Total": valor_parcela if valor_parcela else "N/A",
                 "Saldo Devedor": round(self.saldo_devedor, 2)
             })
@@ -360,9 +402,9 @@ class SimuladorSudes:
         juros_bndes = round(saldo_devedor * (fator_4 - 1), 2)
         return juros_bndes
 
-    def calcular_juros_banpara(self, data_pagamento, saldo_devedor, fator_4):
+    def calcular_juros_banco(self, data_pagamento, saldo_devedor, fator_4):
         """
-        Calcula os juros do BANPARA apenas quando existe uma data de pagamento.
+        Calcula os juros do banco apenas quando existe uma data de pagamento.
 
         Parâmetros:
         - data_pagamento (datetime or None): Data de pagamento para o mês atual.
@@ -370,15 +412,15 @@ class SimuladorSudes:
         - fator_4 (float): Fator 4 calculado para o mês atual.
 
         Retorna:
-        - float: Juros do BANPARA arredondado para 2 casas decimais se há pagamento, ou 0 caso contrário.
+        - float: Juros do banco arredondado para 2 casas decimais se há pagamento, ou 0 caso contrário.
         """
         # Se não há data de pagamento, retorna 0 para juros
         if data_pagamento is None:
             return 0
 
-        # Calcula o fator BANPARA considerando apenas o spread BANPARA
-        fator_banpara = (1 + self.spread_banpara_am)
+        # Calcula o fator banco considerando apenas o spread banco
+        fator_banco = (1 + self.spread_banco_am)
 
-        # Calcula os juros como saldo_devedor * (fator_banpara - 1) e arredonda para 2 casas decimais
-        juros_banpara = round(saldo_devedor * (fator_banpara - 1), 2)
-        return juros_banpara
+        # Calcula os juros como saldo_devedor * (fator_banco - 1) e arredonda para 2 casas decimais
+        juros_banco = round(saldo_devedor * (fator_banco - 1), 2)
+        return juros_banco
