@@ -87,6 +87,12 @@ class SimuladorBNDES:
 
         while True:
             # Determina as datas de aniversário para DUT e DUP
+            if hasattr(self, 'amortizacao_a_aplicar') and self.amortizacao_a_aplicar > 0:
+                # Aplica a amortização acumulada no saldo devedor
+                self.saldo_devedor -= self.amortizacao_a_aplicar
+                self.quantidade_prestacoes_restantes -= 1
+                # Reseta o valor da amortização a aplicar
+                self.amortizacao_a_aplicar = 0
             data_aniversario_anterior = self.proxima_data_ipca(self.data_contratacao + relativedelta(months=mes_atual))
             data_aniversario_subsequente = self.proxima_data_ipca(
                 self.data_contratacao + relativedelta(months=mes_atual + 1)
@@ -130,7 +136,7 @@ class SimuladorBNDES:
             pagamento_info = self.verificar_data_pagamento(mes_atual)
 
             # Calcula a parcela de amortização
-            detalhes_parcela = self.calcular_parcela_amortizacao(mes_atual, pagamento_info, fator_4)
+            detalhes_parcela = self.calcular_parcelas(mes_atual, pagamento_info, fator_4)
 
             # Armazena os resultados
             resultados.append({
@@ -160,7 +166,7 @@ class SimuladorBNDES:
 
         return resultados
 
-    def calcular_parcela_amortizacao(self, mes_atual, pagamento_info, fator_4):
+    def calcular_parcelas(self, mes_atual, pagamento_info, fator_4):
         """
         Calcula a amortização principal, juros e valor total da parcela.
         Atualiza o saldo devedor caso seja necessário.
@@ -398,13 +404,16 @@ class SimuladorBNDES:
 
     def atualizar_saldo_devedor(self, amortizacao_principal):
         """
-        Atualiza o saldo devedor após a amortização principal e decrementa o número de parcelas restantes.
+        Registra a amortização a ser aplicada no saldo devedor no mês seguinte.
 
         Parâmetros:
-        - amortizacao_principal (Decimal): O valor da amortização principal a ser subtraído do saldo devedor.
+        - amortizacao_principal (Decimal): O valor da amortização principal a ser aplicado no próximo mês.
         """
-        self.saldo_devedor -= amortizacao_principal
-        self.quantidade_prestacoes_restantes -= 1
+        if hasattr(self, 'amortizacao_a_aplicar') is False:
+            self.amortizacao_a_aplicar = 0  # Inicializa o atributo caso não exista
+
+        # Adiciona a amortização principal ao registro para o próximo mês
+        self.amortizacao_a_aplicar += amortizacao_principal
 
     def calcular_juros_bndes(self, data_pagamento, saldo_devedor, fator_4):
         """
@@ -455,7 +464,7 @@ class SimuladorBNDES:
 
 # Inicializa o simulador com parâmetros
 simulador = SimuladorBNDES(
-    data_contratacao="09/10/2024",      # Data de contratação do financiamento
+    data_contratacao="15/10/2024",      # Data de contratação do financiamento
     valor_liberado=200000.00,           # Valor liberado (em reais)
     carencia=3,                         # Período de carência em meses
     periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
