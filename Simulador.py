@@ -4,7 +4,7 @@ from pandas import to_datetime
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from lista_feriados import feriados
-
+import math
 
 class SimuladorBNDES:
     def __init__(self, data_contratacao: str, valor_liberado: float, carencia: int,
@@ -28,8 +28,8 @@ class SimuladorBNDES:
 
         # Calcula a quantidade de prestações e converte taxas anuais para mensais
         self.feriados = [to_datetime(f, dayfirst=True).date() for f in feriados]
-        self.quantidade_prestacoes = prazo_amortizacao // periodic_amortizacao
-        self.quantidade_prestacoes_restantes = prazo_amortizacao // periodic_amortizacao
+        self.quantidade_prestacoes = math.ceil(prazo_amortizacao / periodic_amortizacao)
+        self.quantidade_prestacoes_restantes = math.ceil(prazo_amortizacao / periodic_amortizacao)
         self.juros_prefixados_am = (1 + juros_prefixados_aa / 100) ** (1 / 12) - 1
         self.spread_bndes_am = (1 + self.spread_bndes_aa / 100) ** (1 / 12) - 1
         self.spread_banco_am = (1 + self.spread_banco_aa / 100) ** (1 / 12) - 1
@@ -464,7 +464,7 @@ class SimuladorBNDES:
 
 # Inicializa o simulador com parâmetros
 simulador = SimuladorBNDES(
-    data_contratacao="15/10/2024",      # Data de contratação do financiamento
+    data_contratacao="14/10/2024",      # Data de contratação do financiamento
     valor_liberado=200000.00,           # Valor liberado (em reais)
     carencia=3,                         # Período de carência em meses
     periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
