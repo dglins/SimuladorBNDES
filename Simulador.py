@@ -464,7 +464,7 @@ class SimuladorBNDES:
 
 # Inicializa o simulador com parâmetros
 simulador = SimuladorBNDES(
-    data_contratacao="15/10/2024",      # Data de contratação do financiamento
+    data_contratacao="14/10/2024",      # Data de contratação do financiamento
     valor_liberado=200000.00,           # Valor liberado (em reais)
     carencia=3,                         # Período de carência em meses
     periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
