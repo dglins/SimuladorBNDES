@@ -1,5 +1,5 @@
 import streamlit as st
-from Simulador import SimuladorBNDES
+from deprec_simulat import SimuladorBNDES
 
 
 # Cria o app usando Streamlit
