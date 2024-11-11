@@ -34,7 +34,7 @@ class SimuladorBNDES:
 
         # Calcula a quantidade de prestações e converte taxas anuais para mensais
         self.quantidade_prestacoes = math.ceil(prazo_amortizacao / periodic_amortizacao)
-        self.quantidade_prestacoes_restantes = prazo_amortizacao / periodic_amortizacao
+        self.quantidade_prestacoes_restantes = self.quantidade_prestacoes
         self.juros_prefixados_am = (1 + juros_prefixados_aa / 100) ** (1 / 12) - 1
         self.spread_bndes_am = (1 + self.spread_bndes_aa / 100) ** (1 / 12) - 1
         self.spread_banco_am = (1 + self.spread_banco_aa / 100) ** (1 / 12) - 1
@@ -92,6 +92,18 @@ class SimuladorBNDES:
             self.quantidade_prestacoes_restantes -= 1
             self.amortizacao_a_aplicar = 0
 
+    def calcula_amortizacao_principal(self):
+        """
+        Calcula a amortização principal com base no saldo devedor atual e no número de parcelas restantes.
+
+        Retorna:
+        - float: Valor da amortização principal.
+        """
+        if self.quantidade_prestacoes_restantes <= 0:
+            raise ValueError("O número de prestações restantes é zero ou negativo. Verifique os cálculos.")
+
+        return round(self.saldo_devedor / self.quantidade_prestacoes_restantes, 2)
+
     def exibir_dados_pagamento(self, exportar_csv=False):
         """
         Exibe os dados de pagamento em formato tabular e opcionalmente exporta para CSV.
@@ -105,23 +117,20 @@ class SimuladorBNDES:
         resultados = []
         mes_atual = 0
         fator_4_anterior = None
-        data_pagamento_anterior = None
-
-        while mes_atual <= self.quantidade_prestacoes:
-            self.aplicar_amortizacao()
-            # Determina as datas de aniversário
-            data_aniversario_anterior = self.datas.calcular_proxima_data_util(
-                self.data_contratacao + relativedelta(months=mes_atual - 1)
-            ) if mes_atual > 0 else self.data_contratacao
-            data_aniversario_subsequente = self.datas.calcular_proxima_data_util(
+        while mes_atual < self.quantidade_prestacoes:
+            # Corrigindo a construção das datas de aniversário
+            data_aniversario_anterior = self.datas.proxima_data_ipca(
                 self.data_contratacao + relativedelta(months=mes_atual)
+            ) if mes_atual > 0 else self.data_contratacao
+
+            data_aniversario_subsequente = self.datas.calcula_proxima_data_util(
+                self.data_contratacao + relativedelta(months=mes_atual + 1)
             )
 
-            # Calcula DUT e DUP
+            # Calcula DUT e DUP com as datas corrigidas
             dut = self.datas.calcula_dut(data_aniversario_anterior, data_aniversario_subsequente)
-            data_inicio = self.data_contratacao if mes_atual == 0 else data_aniversario_anterior
             dup = self.datas.calcula_dup(
-                data_inicio=data_inicio,
+                data_inicio=data_aniversario_anterior,
                 data_calculo=self.data_contratacao + relativedelta(months=mes_atual + 1),
                 data_aniversario_anterior=data_aniversario_anterior,
                 data_aniversario_subsequente=data_aniversario_subsequente
@@ -137,12 +146,8 @@ class SimuladorBNDES:
             pagamento_info = self.verificar_data_pagamento(mes_atual)
 
             if pagamento_info and pagamento_info["pagar_amortizacao"]:
-                # Calcula a amortização principal e atualiza saldo devedor
-                amortizacao_principal = self.calculadora.calcula_amortizacao_principal(
-                    self.saldo_devedor, self.quantidade_prestacoes_restantes
-                )
-                self.saldo_devedor -= amortizacao_principal
-                self.quantidade_prestacoes_restantes -= 1
+                amortizacao_principal = self.calcula_amortizacao_principal()
+                self.amortizacao_a_aplicar += amortizacao_principal
             else:
                 amortizacao_principal = 0
 
@@ -170,6 +175,9 @@ class SimuladorBNDES:
                 "Parcela Total": round(parcela_total, 2),
                 "Saldo Devedor": round(self.saldo_devedor, 2)
             })
+
+            # Aplica a amortização acumulada no saldo devedor
+            self.aplicar_amortizacao()
 
             # Incrementa o mês
             mes_atual += 1

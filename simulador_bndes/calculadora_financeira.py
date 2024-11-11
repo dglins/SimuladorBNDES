@@ -40,20 +40,6 @@ class CalculadoraFinanceira:
         return round(juros_banco, 2)
 
     @staticmethod
-    def calcula_amortizacao_principal(saldo_devedor, quantidade_prestacoes_restantes):
-        """
-        Calcula a amortização principal com base no saldo devedor atual e no número de parcelas restantes.
-
-        Parâmetros:
-        - saldo_devedor (float): Saldo devedor atual.
-        - quantidade_prestacoes_restantes (int): Número de parcelas restantes.
-
-        Retorna:
-        - float: Valor da amortização principal.
-        """
-        return round(saldo_devedor / quantidade_prestacoes_restantes, 2)
-
-    @staticmethod
     def exportar_csv(resultados, arquivo):
         import pandas as pd
         df = pd.DataFrame(resultados)

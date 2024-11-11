@@ -7,13 +7,49 @@ class GerenciadorDatas:
     def __init__(self, feriados):
         self.feriados = [datetime.strptime(f, "%d/%m/%Y").date() for f in feriados]
 
-    def calcular_proxima_data_util(self, data_input):
+    def proxima_data_ipca(self, data_input):
         """
-        Ajusta a data para o próximo dia útil.
+        Retorna a próxima data de referência para o IPCA com base na data fornecida.
+        A data de referência é sempre o dia 15 do mês atual, anterior ou seguinte.
+
+        Parâmetros:
+        - data_input (datetime | str): Data de entrada.
+
+        Retorna:
+        - datetime: Data de referência para o IPCA.
         """
-        while data_input.weekday() >= 5 or data_input.date() in self.feriados:
-            data_input += timedelta(days=1)
-        return data_input
+        if isinstance(data_input, str):
+            data_input = datetime.strptime(data_input, "%Y-%m-%d")
+
+        ano, mes = data_input.year, data_input.month
+
+        if data_input.day >= 15:
+            mes += 1
+            if mes > 12:
+                mes = 1
+                ano += 1
+
+        return datetime(ano, mes, 15)
+
+    def calcula_proxima_data_util(self, data_input):
+        """
+        Calcula a próxima data útil com base na data ajustada para o IPCA,
+        iniciando a busca de dias úteis a partir do dia 15 do mês.
+
+        Parâmetros:
+        - data_input (datetime): Data base para o cálculo.
+
+        Retorna:
+        - datetime: Próxima data útil.
+        """
+        # Obtém a data ajustada para o IPCA
+        data_ipca = self.proxima_data_ipca(data_input)
+
+        # Incrementa até encontrar um dia útil
+        while data_ipca.weekday() >= 5 or data_ipca.date() in self.feriados:
+            data_ipca += timedelta(days=1)
+
+        return data_ipca
 
     def calcula_dut(self, data_aniversario_anterior, data_aniversario_subsequente):
         """
@@ -30,7 +66,7 @@ class GerenciadorDatas:
             data_atual += timedelta(days=1)
 
         # Garante que o DUT nunca será zero
-        return max(dias_uteis, 1)
+        return dias_uteis
 
     def calcula_dup(self, data_inicio, data_calculo, data_aniversario_anterior, data_aniversario_subsequente):
         """

@@ -97,9 +97,7 @@ class SimuladorBNDES:
 
             # Determina as datas de aniversário para DUT e DUP
             data_aniversario_anterior = self.proxima_data_ipca(self.data_contratacao + relativedelta(months=mes_atual))
-            data_aniversario_subsequente = self.proxima_data_ipca(
-                self.data_contratacao + relativedelta(months=mes_atual + 1)
-            )
+            data_aniversario_subsequente = self.proxima_data_ipca(self.data_contratacao + relativedelta(months=mes_atual + 1))
 
             # Calcula DUT e DUP
             dut = self.calcula_dut(data_aniversario_anterior, data_aniversario_subsequente)
