@@ -118,14 +118,15 @@ class SimuladorBNDES:
         mes_atual = 0
         fator_4_anterior = None
         while mes_atual < self.quantidade_prestacoes:
+
             # Corrigindo a construção das datas de aniversário
             data_aniversario_anterior = self.datas.proxima_data_ipca(
                 self.data_contratacao + relativedelta(months=mes_atual)
             ) if mes_atual > 0 else self.data_contratacao
-
-            data_aniversario_subsequente = self.datas.calcula_proxima_data_util(
-                self.data_contratacao + relativedelta(months=mes_atual + 1)
+            data_aniversario_subsequente = self.datas.proxima_data_ipca(
+                self.data_contratacao + relativedelta(months=mes_atual +1 )
             )
+
 
             # Calcula DUT e DUP com as datas corrigidas
             dut = self.datas.calcula_dut(data_aniversario_anterior, data_aniversario_subsequente)

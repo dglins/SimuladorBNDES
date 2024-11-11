@@ -10,26 +10,29 @@ class GerenciadorDatas:
     def proxima_data_ipca(self, data_input):
         """
         Retorna a próxima data de referência para o IPCA com base na data fornecida.
-        A data de referência é sempre o dia 15 do mês atual, anterior ou seguinte.
-
-        Parâmetros:
-        - data_input (datetime | str): Data de entrada.
-
-        Retorna:
-        - datetime: Data de referência para o IPCA.
         """
         if isinstance(data_input, str):
             data_input = datetime.strptime(data_input, "%Y-%m-%d")
 
-        ano, mes = data_input.year, data_input.month
+        ano = data_input.year
+        mes = data_input.month
 
-        if data_input.day >= 15:
+        if data_input.day == 15:
+            dia_referencia = data_input.day
+        elif data_input.day >= 15:
             mes += 1
             if mes > 12:
                 mes = 1
                 ano += 1
+            dia_referencia = 15
+        else:
+            mes -= 1
+            if mes < 1:
+                mes = 12
+                ano -= 1
+            dia_referencia = 15
 
-        return datetime(ano, mes, 15)
+        return datetime(ano, mes, dia_referencia)
 
     def calcula_proxima_data_util(self, data_input):
         """
