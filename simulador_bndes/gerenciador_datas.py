@@ -1,11 +1,44 @@
 from datetime import datetime, timedelta
-from lista_feriados import feriados
-
-
+from typing import List
 
 class GerenciadorDatas:
-    def __init__(self, feriados):
-        self.feriados = [datetime.strptime(f, "%d/%m/%Y").date() for f in feriados]
+    def __init__(self, feriados: List[str]):
+        """
+        Inicializa o GerenciadorDatas com uma lista de feriados.
+        Feriados são convertidos para objetos datetime.date.
+
+        Parâmetros:
+        - feriados (List[str]): Lista de feriados no formato "dd/mm/yyyy".
+        """
+        self.feriados = sorted(
+            {datetime.strptime(f, "%d/%m/%Y").date() for f in feriados}
+        )
+
+    def adicionar_feriado(self, feriado: str):
+        """
+        Adiciona um novo feriado à lista.
+
+        Parâmetros:
+        - feriado (str): Data no formato "dd/mm/yyyy".
+        """
+        feriado_date = datetime.strptime(feriado, "%d/%m/%Y").date()
+        if feriado_date not in self.feriados:
+            self.feriados.append(feriado_date)
+            self.feriados.sort()  # Mantém os feriados ordenados
+
+    def verificar_feriado(self, data):
+        """
+        Verifica se uma data é feriado.
+
+        Parâmetros:
+        - data (datetime | date): Data a ser verificada.
+
+        Retorna:
+        - bool: True se a data for feriado, False caso contrário.
+        """
+        if isinstance(data, datetime):  # Converte para `date` se for `datetime`
+            data = data.date()
+        return data in self.feriados
 
     def proxima_data_ipca(self, data_input):
         """
@@ -49,7 +82,7 @@ class GerenciadorDatas:
         data_ipca = self.proxima_data_ipca(data_input)
 
         # Incrementa até encontrar um dia útil
-        while data_ipca.weekday() >= 5 or data_ipca.date() in self.feriados:
+        while data_ipca.weekday() >= 5 or self.verificar_feriado(data_ipca):
             data_ipca += timedelta(days=1)
 
         return data_ipca
@@ -57,18 +90,22 @@ class GerenciadorDatas:
     def calcula_dut(self, data_aniversario_anterior, data_aniversario_subsequente):
         """
         Calcula o número de dias úteis entre duas datas de aniversário (DUT).
-        Retorna pelo menos 1 para evitar divisão por zero.
+
+        Parâmetros:
+        - data_aniversario_anterior (datetime): Data de Aniversário anterior (inclusive).
+        - data_aniversario_subsequente (datetime): Próxima Data de Aniversário (exclusive).
+
+        Retorna:
+        - int: Número de dias úteis (DUT) entre as datas.
         """
         data_atual = data_aniversario_anterior.date()
         data_fim = data_aniversario_subsequente.date()
         dias_uteis = 0
 
         while data_atual < data_fim:
-            if data_atual.weekday() < 5 and data_atual not in self.feriados:
+            if data_atual.weekday() < 5 and not self.verificar_feriado(data_atual):
                 dias_uteis += 1
             data_atual += timedelta(days=1)
-
-        # Garante que o DUT nunca será zero
         return dias_uteis
 
     def calcula_dup(self, data_inicio, data_calculo, data_aniversario_anterior, data_aniversario_subsequente):
@@ -96,7 +133,7 @@ class GerenciadorDatas:
         data_final = data_final.date()
 
         while data_atual < data_final:
-            if data_atual.weekday() < 5 and data_atual not in self.feriados:
+            if data_atual.weekday() < 5 and not self.verificar_feriado(data_atual):
                 dias_uteis += 1
             data_atual += timedelta(days=1)
 

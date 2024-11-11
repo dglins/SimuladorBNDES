@@ -3,7 +3,6 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from lista_feriados import feriados
 from gerenciador_datas import GerenciadorDatas
-from calculadora_financeira import CalculadoraFinanceira
 from gerenciador_apis import GerenciadorAPIs
 
 class SimuladorBNDES:
@@ -25,7 +24,6 @@ class SimuladorBNDES:
         # Instancia classes auxiliares
         self.datas = GerenciadorDatas(feriados)
         self.apis = GerenciadorAPIs()
-        self.calculadora = CalculadoraFinanceira()
 
         # Busca valores da TLP e IPCA automaticamente, se não fornecidos
         self.ipca_mensal = ipca_mensal if ipca_mensal is not None else self.apis.obter_ipca()
@@ -104,6 +102,65 @@ class SimuladorBNDES:
 
         return round(self.saldo_devedor / self.quantidade_prestacoes_restantes, 2)
 
+    def calcular_juros_bndes(self, fator_4):
+        """
+        Calcula os juros do BNDES com base no saldo devedor e no fator financeiro.
+
+        Parâmetros:
+        - fator_4 (float): Fator acumulado calculado para o mês.
+
+        Retorna:
+        - float: Valor dos juros do BNDES arredondado para 2 casas decimais.
+        """
+        if self.saldo_devedor <= 0:
+            return 0  # Nenhum juros é calculado se o saldo devedor for zero ou negativo
+
+        juros_bndes = self.saldo_devedor * (fator_4 - 1)
+        return round(juros_bndes, 2)
+
+    def calcular_juros_banco(self):
+        """
+        Calcula os juros do banco com base no saldo devedor e no spread mensal do banco.
+
+        Retorna:
+        - float: Valor dos juros do banco arredondado para 2 casas decimais.
+        """
+        if self.saldo_devedor <= 0:
+            return 0  # Nenhum juros é calculado se o saldo devedor for zero ou negativo
+
+        fator_banco = (1 + self.spread_banco_am)
+        juros_banco = self.saldo_devedor * (fator_banco - 1)
+        return round(juros_banco, 2)
+
+    def calcular_fatores(self, dup, dut, fator_4_anterior=None):
+        """
+        Calcula os quatro fatores necessários para o financiamento do BNDES.
+
+        Parâmetros:
+        - dup (int): Número de dias úteis compreendidos entre as datas definidas.
+        - dut (int): Número de dias úteis entre as datas de aniversário.
+        - fator_4_anterior (float, opcional): Valor do fator_4 da parcela anterior (para o cálculo cumulativo de fator_4).
+
+        Retorna:
+        - tuple: (fator_1, fator_2, fator_3, fator_4), com cada fator calculado com precisão de 16 casas decimais.
+        """
+        if dut <= 0:
+            raise ValueError("O DUT (dias úteis entre aniversários) deve ser maior que zero.")
+
+        # Cálculo dos fatores 1, 2 e 3
+        fator_1 = (1 + self.ipca_mensal / 100) ** (dup / dut)
+        fator_2 = (1 + self.juros_prefixados_aa / 100) ** (dup / 252)
+        fator_3 = (1 + self.spread_bndes_aa / 100) ** (dup / 252)
+
+        # Cálculo do fator 4
+        if fator_4_anterior is not None:
+            fator_4 = fator_1 * fator_2 * fator_3 * fator_4_anterior
+        else:
+            fator_4 = fator_1 * fator_2 * fator_3
+
+        # Retorna os fatores arredondados
+        return round(fator_1, 16), round(fator_2, 16), round(fator_3, 16), round(fator_4, 16)
+
     def exibir_dados_pagamento(self, exportar_csv=False):
         """
         Exibe os dados de pagamento em formato tabular e opcionalmente exporta para CSV.
@@ -138,9 +195,7 @@ class SimuladorBNDES:
             )
 
             # Calcula os fatores financeiros
-            fator_1, fator_2, fator_3, fator_4 = self.calculadora.calcular_fatores(
-                self.ipca_mensal, self.juros_prefixados_aa, self.spread_bndes_aa, dup, dut, fator_4_anterior
-            )
+            fator_1, fator_2, fator_3, fator_4 = self.calcular_fatores(dup, dut, fator_4_anterior)
             fator_4_anterior = fator_4
 
             # Determina o pagamento de juros e/ou amortização
@@ -153,11 +208,11 @@ class SimuladorBNDES:
                 amortizacao_principal = 0
 
             # Calcula os juros BNDES e banco
-            juros_bndes = self.calculadora.calcular_juros_bndes(
-                self.saldo_devedor, fator_4
+            juros_bndes = self.calcular_juros_bndes(
+                 fator_4
             )
-            juros_banco = self.calculadora.calcular_juros_banco(
-                self.saldo_devedor, self.spread_banco_am
+            juros_banco = self.calcular_juros_banco(
+
             )
 
             # Calcula o valor total da parcela
@@ -189,7 +244,7 @@ class SimuladorBNDES:
 
         # Exporta os resultados para CSV, se solicitado
         if exportar_csv:
-            self.calculadora.exportar_csv(resultados, "simulador_resultados.csv")
+            exportar_csv(resultados, "simulador_resultados.csv")
 
         return resultados
 
