@@ -93,7 +93,9 @@ class SimuladorBNDES:
                 self.quantidade_prestacoes_restantes -= 1
                 # Reseta o valor da amortização a aplicar
                 self.amortizacao_a_aplicar = 0
-            data_aniversario_anterior = self.proxima_data_ipca(self.data_contratacao + relativedelta(months=mes_atual))
+            data_aniversario_anterior = self.proxima_data_ipca(
+                self.data_contratacao + relativedelta(months=mes_atual)
+            )
             data_aniversario_subsequente = self.proxima_data_ipca(
                 self.data_contratacao + relativedelta(months=mes_atual + 1)
             )
@@ -115,18 +117,18 @@ class SimuladorBNDES:
             if mes_atual == 0:
                 resultados.append({
                     "Mês": mes_atual,
-                    "Parcela": "N/A",
-                    "Data Vencimento": "N/A",
+                    "Parcela": "-",
+                    "Data Vencimento": "-",
                     "DUP": dup,
                     "DUT": dut,
                     "Fator 1": fator_1,
                     "Fator 2": fator_2,
                     "Fator 3": fator_3,
                     "Fator 4": fator_4,
-                    "Amortização Principal": "N/A",
-                    "Juros BNDES": "N/A",
-                    "Juros banco": "N/A",
-                    "Parcela Total": "N/A",
+                    "Amortização Principal": "-",
+                    "Juros BNDES": "-",
+                    "Juros banco": "-",
+                    "Parcela Total": "-",
                     "Saldo Devedor": round(self.saldo_devedor, 2)
                 })
                 mes_atual += 1
@@ -200,7 +202,7 @@ class SimuladorBNDES:
 
             # Calcula juros
             juros_bndes = self.calcular_juros_bndes(data_vencimento, self.saldo_devedor, fator_4)
-            juros_banco = self.calcular_juros_banco(data_vencimento, self.saldo_devedor, self.spread_banco_aa)
+            juros_banco = self.calcular_juros_banco(data_vencimento)
 
             # Calcula valor total da parcela
             valor_parcela = round((amortizacao_principal or 0) + juros_bndes + juros_banco, 2)
@@ -211,12 +213,12 @@ class SimuladorBNDES:
 
         # Retorna os detalhes calculados
         return {
-            "Parcela": contador if contador else "N/A",
-            "Data Vencimento": data_vencimento.strftime('%d/%m/%Y') if data_vencimento else "N/A",
-            "Amortização Principal": round(amortizacao_principal, 2) if amortizacao_principal else "N/A",
+            "Parcela": contador if contador else "-",
+            "Data Vencimento": data_vencimento.strftime('%d/%m/%Y') if data_vencimento else "-",
+            "Amortização Principal": round(amortizacao_principal, 2) if amortizacao_principal else "-",
             "Juros BNDES": juros_bndes,
             "Juros banco": juros_banco,
-            "Parcela Total": valor_parcela if valor_parcela else "N/A",
+            "Parcela Total": valor_parcela if valor_parcela else "-",
             "Saldo Devedor": round(self.saldo_devedor, 2)
         }
 
@@ -435,7 +437,7 @@ class SimuladorBNDES:
         juros_bndes = round(saldo_devedor * (fator_4 - 1), 2)
         return juros_bndes
 
-    def calcular_juros_banco(self, data_pagamento, saldo_devedor, fator_4):
+    def calcular_juros_banco(self, data_pagamento):
         """
         Calcula os juros do banco apenas quando existe uma data de pagamento.
 
@@ -455,7 +457,7 @@ class SimuladorBNDES:
         fator_banco = (1 + self.spread_banco_am)
 
         # Calcula os juros como saldo_devedor * (fator_banco - 1) e arredonda para 2 casas decimais
-        juros_banco = round(saldo_devedor * (fator_banco - 1), 2)
+        juros_banco = round(self.saldo_devedor * (fator_banco - 1), 2)
         return juros_banco
 
 
@@ -468,10 +470,13 @@ simulador = SimuladorBNDES(
     valor_liberado=200000.00,           # Valor liberado (em reais)
     carencia=3,                         # Período de carência em meses
     periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
-    prazo_amortizacao=10,               # Prazo de amortização (meses)
+    prazo_amortizacao=12,               # Prazo de amortização (meses)
     periodic_amortizacao=3,             # Periodicidade de pagamento de amortização (meses)
     juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
-    spread_banco_aa=5.75              # Spread do banco anual (% a.a.)
+    spread_banco_aa=5.75,              # Spread do banco anual (% a.a.)
+    ipca_mensal = 0.44,
+    spread_bndes_aa = 1.15
+
 )
 
 

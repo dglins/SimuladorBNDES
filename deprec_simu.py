@@ -478,11 +478,11 @@ class SimuladorBNDES:
 
 # Inicializa o simulador com parâmetros
 simulador = SimuladorBNDES(
-    data_contratacao="09/10/2024",      # Data de contratação do financiamento
+    data_contratacao="14/10/2024",      # Data de contratação do financiamento
     valor_liberado=200000.00,           # Valor liberado (em reais)
     carencia=3,                         # Período de carência em meses
     periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
-    prazo_amortizacao=10,               # Prazo de amortização (meses)
+    prazo_amortizacao=12,               # Prazo de amortização (meses)
     periodic_amortizacao=3,             # Periodicidade de pagamento de amortização (meses)
     juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
     spread_banco_aa=5.75,              # Spread do banco anual (% a.a.)
