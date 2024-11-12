@@ -401,8 +401,8 @@ class SimuladorBNDES:
         Retorna:
         - Decimal: O valor da amortização principal para a parcela atual.
         """
-        amortizacao_principal = self.saldo_devedor / self.quantidade_prestacoes_restantes
-        return amortizacao_principal
+        self.amortizacao_principal = self.saldo_devedor / self.quantidade_prestacoes_restantes
+        return self.amortizacao_principal
 
     def atualizar_saldo_devedor(self, amortizacao_principal):
         """
@@ -468,9 +468,9 @@ class SimuladorBNDES:
 simulador = SimuladorBNDES(
     data_contratacao="14/10/2024",      # Data de contratação do financiamento
     valor_liberado=200000.00,           # Valor liberado (em reais)
-    carencia=3,                         # Período de carência em meses
+    carencia=12,                         # Período de carência em meses
     periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
-    prazo_amortizacao=12,               # Prazo de amortização (meses)
+    prazo_amortizacao=24,               # Prazo de amortização (meses)
     periodic_amortizacao=3,             # Periodicidade de pagamento de amortização (meses)
     juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
     spread_banco_aa=5.75,              # Spread do banco anual (% a.a.)
