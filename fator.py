@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 from lista_feriados import feriados
 from decimal import Decimal, getcontext
 
+
 class SimuladorSudes:
     def __init__(self, data_contratacao: str, valor_liberado: float, carencia: int,
                  periodic_juros: int, prazo_amortizacao: int,
@@ -40,10 +41,10 @@ class SimuladorSudes:
         """
         mes_atual = 0
         fator_4_anterior = None  # Inicializa o fator_4 para a primeira parcela
-        data_pagamento_anterior = None
+        houve_pagamento_anterior = None
         while True:
             contador = self.contador_mes(mes_atual)
-            data_vencimento = self.verificar_data_vencimento(mes_atual) if contador is not None else None
+            data_vencimento = self.verificar_data_vencimento(mes_atual) if contador is not None else False
 
             # Determina as datas de aniversário (referências de cálculo) para cada mês
             data_aniversario_anterior = self.proxima_data_ipca(self.data_contratacao + relativedelta(months=mes_atual))
@@ -61,11 +62,11 @@ class SimuladorSudes:
             dup = self.calcula_dup(data_inicio, data_calculo, data_aniversario_anterior, data_aniversario_subsequente)
 
             # FATORES
-            fator_1, fator_2, fator_3, fator_4 = self.calcular_fatores(dup, dut, fator_4_anterior,data_pagamento_anterior)
+            fator_1, fator_2, fator_3, fator_4 = self.calcular_fatores(dup, dut, fator_4_anterior,houve_pagamento_anterior)
 
             # Atualiza fator_4_anterior com o valor atual de fator_4 para o próximo mês
             fator_4_anterior = fator_4
-            data_pagamento_anterior = data_vencimento
+            houve_pagamento_anterior = data_vencimento
 
             # Calcula a amortização principal e atualiza o saldo devedor
             amortizacao_principal = self.calcula_amortizacao_principal() if contador else None
@@ -258,49 +259,33 @@ class SimuladorSudes:
         # Limita o DUP ao DUT
         return min(dias_uteis, dut)
 
-
-
-    def calcular_fatores(self, dup, dut, fator_4_anterior=None, data_pagamento_anterior=None):
+    def calcular_fatores(self, dup, dut, fator_4_anterior=None, houve_pagamento_anterior=True):
         """
-        Calcula os quatro fatores necessários para o financiamento do BNDES com alta precisão.
+        Calcula os quatro fatores necessários para o financiamento do BNDES.
+
+        Calcula com o padrão fator_1 * fator_2 * fator_3
+        Se não houve pagamento no mês anterior calcula fator_1 * fator_2 * fator_3 * fator_4_anterior
 
         Parâmetros:
         - dup (int): Número de dias úteis compreendidos entre as datas definidas.
         - dut (int): Número de dias úteis entre as datas de aniversário.
         - fator_4_anterior (float, opcional): Valor do fator_4 da parcela anterior (para o cálculo cumulativo de fator_4).
+        - data_pagamento_anterior (bool, opicional): Verifica se houve pagamento no mês anterior para escolher o cálculo.
 
         Retorna:
-        - tuple: (fator_1, fator_2, fator_3, fator_4), com cada fator calculado com precisão de 16 casas decimais.
+        - tuple: (fator_1, fator_2, fator_3, fator_4)
         """
-        # Configurar precisão para 16 casas decimais
-        getcontext().prec = 18  # Configuramos um pouco maior para evitar arredondamento prematuro
+        # Cálculo dos fatores
+        fator_1 = round((1 + self.ipca_mensal / 100) ** (dup / dut), 16)
+        fator_2 = round((1 + self.juros_prefixados_aa / 100) ** (dup / 252), 16)
+        fator_3 = round((1 + self.spread_bndes_aa / 100) ** (dup / 252), 16)
 
-        # Conversão dos parâmetros para Decimal
-        ipca_mensal = Decimal(self.ipca_mensal) / Decimal(100)
-        juros_prefixados_aa = Decimal(self.juros_prefixados_aa) / Decimal(100)
-        spread_bndes_aa = Decimal(self.spread_bndes_aa) / Decimal(100)
-        dup_decimal = Decimal(dup)
-        dut_decimal = Decimal(dut)
-        fator_4_anterior = Decimal(fator_4_anterior) if fator_4_anterior is not None else None
-
-        # Cálculo dos fatores usando Decimal
-        fator_1 = (Decimal(1) + ipca_mensal) ** (dup_decimal / dut_decimal)
-        fator_2 = (Decimal(1) + juros_prefixados_aa) ** (dup_decimal / Decimal(252))
-        fator_3 = (Decimal(1) + spread_bndes_aa) ** (dup_decimal / Decimal(252))
-
-        # Fator 4 depende de fator_4_anterior para parcelas subsequentes
-        if data_pagamento_anterior is None and fator_4_anterior:
+        if houve_pagamento_anterior:
             fator_4 = fator_1 * fator_2 * fator_3 * fator_4_anterior
         else:
             fator_4 = fator_1 * fator_2 * fator_3
 
-        # Retorna os fatores com precisão de 16 casas decimais
-        return (
-            round(fator_1, 14),
-            round(fator_2, 14),
-            round(fator_3, 14),
-            round(fator_4, 14)
-        )
+        return round(fator_1, 18), round(fator_2,18) , round(fator_3,18) , round(fator_4, 18)
 
     def calcula_amortizacao_principal(self):
         """
@@ -369,38 +354,27 @@ class SimuladorSudes:
 
 
 
-# # # Inicializa o simulador com parâmetros
-# simulador = SimuladorSudes(
-#     data_contratacao="14/10/2024",      # Data de contratação do financiamento
-#     valor_liberado=200000.00,           # Valor liberado (em reais)
-#     carencia=12,                         # Período de carência em meses
-#     periodic_juros=2,                   # Periodicidade do pagamento de juros (meses)
-#     prazo_amortizacao=60,               # Prazo de amortização (meses)
-#     periodic_amortizacao=6,             # Periodicidade de pagamento de amortização (meses)
-#     juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
-#     ipca_mensal=0.44,                   # Variação mensal do IPCA (% a.m.)
-#     spread_bndes_aa=1.15,               # Spread do BNDES anual (% a.a.)
-#     spread_banpara_aa=5.75              # Spread do BANPARA anual (% a.a.)
-# )
-#
-#
-#
-# print("Contagem de Meses de Pagamento e Datas de Vencimento:\n\n")
-# simulador.exibir_dados_pagamento()
+# # Inicializa o simulador com parâmetros
+simulador = SimuladorSudes(
+    data_contratacao="15/10/2024",      # Data de contratação do financiamento
+    valor_liberado=200000.00,           # Valor liberado (em reais)
+    carencia=12,                         # Período de carência em meses
+    periodic_juros=2,                   # Periodicidade do pagamento de juros (meses)
+    prazo_amortizacao=60,               # Prazo de amortização (meses)
+    periodic_amortizacao=6,             # Periodicidade de pagamento de amortização (meses)
+    juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
+    ipca_mensal=0.44,                   # Variação mensal do IPCA (% a.m.)
+    spread_bndes_aa=1.15,               # Spread do BNDES anual (% a.a.)
+    spread_banpara_aa=5.75              # Spread do BANPARA anual (% a.a.)
+)
 
 
-def arredondar_numero(numero):
-    ultimos_dois_digitos = numero % 100
 
-    if ultimos_dois_digitos >= 50:
-        return (numero // 50 + 1) * 50
-    else:
-        return (numero // 100) * 100
+print("Contagem de Meses de Pagamento e Datas de Vencimento:\n\n")
+simulador.exibir_dados_pagamento()
 
 
-numero = 24284364149
-x = arredondar_numero(numero)
-print(x)
+
 
 
 

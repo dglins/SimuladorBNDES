@@ -82,7 +82,7 @@ class SimuladorBNDES:
         """
         mes_atual = 0
         fator_4_anterior = None
-        data_pagamento_anterior = None
+        houve_pagamento_anterior = None
         resultados = []
 
         while True:
@@ -107,32 +107,9 @@ class SimuladorBNDES:
             dup = self.calcula_dup(data_inicio, data_calculo, data_aniversario_anterior, data_aniversario_subsequente)
 
             # Calcula fatores
-            fator_1, fator_2, fator_3, fator_4 = self.calcular_fatores(dup, dut, fator_4_anterior,
-                                                                       data_pagamento_anterior)
+            fator_1, fator_2, fator_3, fator_4, tipo_fator = self.calcular_fatores(dup, dut, fator_4_anterior,
+                                                                       houve_pagamento_anterior)
 
-            # Atualiza o fator_4_anterior
-            fator_4_anterior = fator_4
-
-            # Para o mês 0, apenas registra as informações
-            if mes_atual == 0:
-                resultados.append({
-                    "Mês": mes_atual,
-                    "Parcela": "-",
-                    "Data Vencimento": "-",
-                    "DUP": dup,
-                    "DUT": dut,
-                    "Fator 1": fator_1,
-                    "Fator 2": fator_2,
-                    "Fator 3": fator_3,
-                    "Fator 4": fator_4,
-                    "Amortização Principal": "-",
-                    "Juros BNDES": "-",
-                    "Juros banco": "-",
-                    "Parcela Total": "-",
-                    "Saldo Devedor": round(self.saldo_devedor, 2)
-                })
-                mes_atual += 1
-                continue
 
             # Verifica os dados de pagamento (juros e/ou amortização)
             pagamento_info = self.verificar_data_pagamento(mes_atual)
@@ -145,12 +122,21 @@ class SimuladorBNDES:
                 "Mês": mes_atual,
                 "DUP": dup,
                 "DUT": dut,
-                "Fator 1": fator_1,
-                "Fator 2": fator_2,
-                "Fator 3": fator_3,
-                "Fator 4": fator_4,
+                "Fator 1": round(fator_1, 18),
+                "Fator 2": round(fator_2, 18),
+                "Fator 3": round(fator_3, 18),
+                "Fator 4": round(fator_4, 18),
+                "Fat 4 ant": fator_4_anterior,
+                "Tipo fat": tipo_fator,
                 **detalhes_parcela
             })
+            # Atualiza o fator_4_anterior
+            fator_4_anterior = fator_4
+            # Altera o cálculo dos fatores
+            if detalhes_parcela['Data Vencimento'] != "-":
+                houve_pagamento_anterior = False
+            else:
+                houve_pagamento_anterior = True
 
             # Interrompe o loop ao atingir o número máximo de parcelas
             if pagamento_info and pagamento_info["pagar_amortizacao"] and detalhes_parcela[
@@ -367,32 +353,35 @@ class SimuladorBNDES:
         # Limita o DUP ao DUT
         return min(dias_uteis, dut)
 
-    def calcular_fatores(self, dup, dut, fator_4_anterior=None, data_pagamento_anterior=None):
+    def calcular_fatores(self, dup, dut, fator_4_anterior=None, houve_pagamento_anterior=True):
         """
         Calcula os quatro fatores necessários para o financiamento do BNDES.
+
+        Calcula com o padrão fator_1 * fator_2 * fator_3
+        Se não houve pagamento no mês anterior calcula fator_1 * fator_2 * fator_3 * fator_4_anterior
 
         Parâmetros:
         - dup (int): Número de dias úteis compreendidos entre as datas definidas.
         - dut (int): Número de dias úteis entre as datas de aniversário.
         - fator_4_anterior (float, opcional): Valor do fator_4 da parcela anterior (para o cálculo cumulativo de fator_4).
+        - data_pagamento_anterior (bool, opicional): Verifica se houve pagamento no mês anterior para escolher o cálculo.
 
         Retorna:
-        - tuple: (fator_1, fator_2, fator_3, fator_4), com cada fator calculado com precisão de 16 casas decimais.
+        - tuple: (fator_1, fator_2, fator_3, fator_4)
         """
         # Cálculo dos fatores
         fator_1 = round((1 + self.ipca_mensal / 100) ** (dup / dut), 16)
         fator_2 = round((1 + self.juros_prefixados_aa / 100) ** (dup / 252), 16)
         fator_3 = round((1 + self.spread_bndes_aa / 100) ** (dup / 252), 16)
 
-        # Fator 4 depende de fator_4_anterior para parcelas subsequentes
-        # Lógica para calcular fator_4 com base na data de pagamento anterior
-        if data_pagamento_anterior is None and fator_4_anterior:
+        if houve_pagamento_anterior:
             fator_4 = fator_1 * fator_2 * fator_3 * fator_4_anterior
+            tipo_fator = "4 fat"
         else:
             fator_4 = fator_1 * fator_2 * fator_3
+            tipo_fator = "3 fat"
 
-        # Retorna os fatores com 16 casas decimais de precisão
-        return fator_1, fator_2, fator_3, round(fator_4, 16)
+        return round(fator_1, 18), round(fator_2,18) , round(fator_3,18) , round(fator_4, 18), tipo_fator
 
     def calcula_amortizacao_principal(self):
         """
@@ -466,12 +455,12 @@ class SimuladorBNDES:
 
 # Inicializa o simulador com parâmetros
 simulador = SimuladorBNDES(
-    data_contratacao="14/10/2024",      # Data de contratação do financiamento
+    data_contratacao="15/10/2024",      # Data de contratação do financiamento
     valor_liberado=200000.00,           # Valor liberado (em reais)
     carencia=12,                         # Período de carência em meses
-    periodic_juros=1,                   # Periodicidade do pagamento de juros (meses)
-    prazo_amortizacao=24,               # Prazo de amortização (meses)
-    periodic_amortizacao=3,             # Periodicidade de pagamento de amortização (meses)
+    periodic_juros=2,                   # Periodicidade do pagamento de juros (meses)
+    prazo_amortizacao=60,               # Prazo de amortização (meses)
+    periodic_amortizacao=6,             # Periodicidade de pagamento de amortização (meses)
     juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
     spread_banco_aa=5.75,              # Spread do banco anual (% a.a.)
     ipca_mensal = 0.44,
