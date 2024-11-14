@@ -120,14 +120,6 @@ class SimuladorBNDES:
             # Armazena os resultados
             resultados.append({
                 "Mês": mes_atual,
-                "DUP": dup,
-                "DUT": dut,
-                "Fator 1": round(fator_1, 18),
-                "Fator 2": round(fator_2, 18),
-                "Fator 3": round(fator_3, 18),
-                "Fator 4": round(fator_4, 18),
-                "Fat 4 ant": fator_4_anterior,
-                "Tipo fat": tipo_fator,
                 **detalhes_parcela
             })
             # Atualiza o fator_4_anterior
