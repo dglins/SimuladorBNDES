@@ -39,8 +39,3 @@ if st.button("Simular"):
     # Exibe os resultados em uma tabela
     st.write("### Resultados da Simulação")
     st.dataframe(resultados_df)
-
-    # Opção para exportar os resultados para CSV
-    if st.button("Exportar para CSV"):
-        resultados_df.to_csv("simulador_sudes_resultados.csv", index=False)
-        st.success("Resultados exportados para 'simulador_sudes_resultados.csv'")
