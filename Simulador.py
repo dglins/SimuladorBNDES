@@ -441,27 +441,3 @@ class SimuladorBNDES:
         juros_banco = round(self.saldo_devedor * (fator_banco - 1), 2)
         return juros_banco
 
-
-
-
-
-# Inicializa o simulador com parâmetros
-simulador = SimuladorBNDES(
-    data_contratacao="15/10/2024",      # Data de contratação do financiamento
-    valor_liberado=200000.00,           # Valor liberado (em reais)
-    carencia=12,                         # Período de carência em meses
-    periodic_juros=2,                   # Periodicidade do pagamento de juros (meses)
-    prazo_amortizacao=60,               # Prazo de amortização (meses)
-    periodic_amortizacao=6,             # Periodicidade de pagamento de amortização (meses)
-    juros_prefixados_aa=6.31,           # Taxa de juros prefixados anual (% a.a.)
-    spread_banco_aa=5.75,              # Spread do banco anual (% a.a.)
-    ipca_mensal = 0.44,
-    spread_bndes_aa = 1.15
-
-)
-
-
-
-resultados = simulador.exibir_dados_pagamento()
-from tabulate import tabulate  # Para visualização tabular no terminal
-print(tabulate(resultados, headers="keys", tablefmt="grid"))
