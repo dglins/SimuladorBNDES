@@ -95,6 +95,14 @@ with col8:
         help="Informe o spread anual aplicado pelo banco intermediário ao financiamento."
     )
 
+valor_liberado = st.number_input(
+"Valor do financiamento",
+min_value=0.0,
+value=0.0,
+max_value= 50_000_000.0,
+help="Informe o valor do financiamento."
+)
+
 # Botão para realizar a simulação
 if st.button("Simular"):
     # Validação do múltiplo de 3 para a carência
