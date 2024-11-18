@@ -26,9 +26,7 @@ st.write(f"**Regras do Produto Selecionado:**\n"
          f"- Prazo + Carência Máximo: {prazo_max} meses\n"
          f"- Carência Mínima: {carencia_minima} meses\n"
          f"- Prazo Máximo: {prazo_max - carencia_minima} meses\n"
-         f"- Carência Máxima: {carencia_max} meses\n"
-         f"- Per. Juros (meses): 3\n"
-         f"- Per. Amortização (meses): 1"
+         f"- Carência Máxima: {carencia_max} meses"
          )
 
 
@@ -36,7 +34,7 @@ st.write(f"**Regras do Produto Selecionado:**\n"
 st.write("### Configurações do Simulador")
 
 # Inputs na mesma linha para períodos
-col1, col2 = st.columns([1, 1])
+col1, col2, col3, col4 = st.columns([1,1,1, 1])
 with col1:
     carencia = st.number_input(
         "Carência (meses)",
@@ -53,29 +51,41 @@ with col2:
         value=24,
         help="Informe o prazo para amortização (tempo para quitação do saldo devedor)."
     )
-
+with col3:
+    st.text_input(
+        "Per. Juros",
+        value="Trimestral",
+        help="A periodicidade do pagamento dos juros é Trimestral."
+    )
+with col4:
+    st.text_input(
+        "Per. Amortização",
+        value="Mensal",
+        help="A periodicidade do pagamento é mensal."
+    )
 # Inputs na mesma linha para taxas e spreads
 col5, col6, col7, col8 = st.columns([1, 1, 1, 1])
 with col5:
     juros_prefixados_aa = st.number_input(
-        "Juros Prefixados (% a.a.)",
+        "Juros TLP (% a.a.)",
         min_value=0.0,
-        value=6.43,
-        help="Taxa de juros anual prefixada para o financiamento."
+        value=0.0,
+        help="Se não informado, atualiza com as informações atuais do BC."
     )
 with col6:
     ipca_mensal = st.number_input(
         "IPCA (% a.m.)",
         min_value=0.0,
-        value=0.56,
-        help="Informe a variação do IPCA mensal, usado para calcular a correção monetária."
+        value=0.0,
+        help="Se não informado, atualiza com as informações atuais do BC."
     )
 with col7:
     spread_bndes_aa = st.number_input(
         "Spread BNDES (% a.a.)",
-        min_value=0.0,
+        min_value=0.95,
+        max_value=0.95,
         value=0.95,
-        help="Informe o spread anual aplicado pelo BNDES ao financiamento."
+        help="Spread anual aplicado pelo BNDES ao financiamento."
     )
 with col8:
     spread_banco_aa = st.number_input(
@@ -116,8 +126,9 @@ if st.button("Simular"):
             )
 
             # Gera os resultados da simulação
-            resultados_df = simulador.exibir_dados_pagamento()
+            resultados_df, configuracoes = simulador.exibir_dados_pagamento()
 
             # Exibe os resultados em uma tabela
             st.write("### Resultados da Simulação")
+            st.dataframe(configuracoes, use_container_width=True)
             st.dataframe(resultados_df, use_container_width=True)

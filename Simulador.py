@@ -10,7 +10,7 @@ class SimuladorBNDES:
     def __init__(self, data_contratacao: str, valor_liberado: float, carencia: int,
                  periodic_juros: int, prazo_amortizacao: int,
                  periodic_amortizacao: int, juros_prefixados_aa: float,
-                 ipca_mensal: float = None, spread_bndes_aa: float = None, spread_banco_aa: float = None):
+                 ipca_mensal: float = 0.0, spread_bndes_aa: float = 0.95, spread_banco_aa: float = 0.0):
         # Inicializa os parâmetros principais
         self.data_contratacao = datetime.strptime(data_contratacao, "%d/%m/%Y")
         self.valor_liberado = valor_liberado
@@ -20,11 +20,15 @@ class SimuladorBNDES:
         self.prazo_amortizacao = prazo_amortizacao
         self.periodic_amortizacao = periodic_amortizacao
         self.juros_prefixados_aa = juros_prefixados_aa
+        self.spread_bndes_aa = spread_bndes_aa
+
 
         # Busca valores da TLP e IPCA automaticamente, se não fornecidos
-        self.ipca_mensal = ipca_mensal if ipca_mensal is not None else self.obter_ipca()
-        self.spread_bndes_aa = spread_bndes_aa if spread_bndes_aa is not None else self.obter_tlp()
-        self.spread_banco_aa = spread_banco_aa if spread_banco_aa is not None else 5.75  # Default
+        self.ipca_mensal = ipca_mensal if ipca_mensal != 0.0 else self.obter_ipca()
+        self.juros_prefixados_aa = juros_prefixados_aa if juros_prefixados_aa != 0.0 else self.obter_tlp()
+        self.spread_banco_aa = spread_banco_aa if spread_banco_aa is not 0.0 else 5.75  # Default
+
+        self.taxa_total_anual = self.juros_prefixados_aa + self.spread_bndes_aa + self.spread_banco_aa + (self.ipca_mensal * 12)
 
         # Calcula a quantidade de prestações e converte taxas anuais para mensais
         self.feriados = [to_datetime(f, dayfirst=True).date() for f in feriados]
@@ -78,13 +82,34 @@ class SimuladorBNDES:
 
     def exibir_dados_pagamento(self, exportar_csv=False):
         """
-        Exibe os dados de pagamento em formato tabular e opcionalmente exporta para CSV.
+        Exibe as configurações da simulação e os dados de pagamento em formato tabular.
+        Opcionalmente exporta para CSV.
         """
         mes_atual = 0
         fator_4_anterior = None
         houve_pagamento_anterior = None
         resultados = []
 
+        # Exibe as configurações da simulação
+        configuracoes = {
+            "Data de Contratação": self.data_contratacao.strftime("%d/%m/%Y"),
+            "Valor Liberado": f"R$ {self.valor_liberado:,.2f}",
+            "Período de Carência (meses)": self.carencia,
+            "Periodicidade de Juros (meses)": self.periodic_juros,
+            "Prazo de Amortização (meses)": self.prazo_amortizacao,
+            "Periodicidade de Amortização (meses)": self.periodic_amortizacao,
+            "Juros Prefixados (Anual)": f"{self.juros_prefixados_aa:.2f}%",
+            "IPCA Mensal": f"{self.ipca_mensal:.2f}%",
+            "Spread BNDES (Anual)": f"{self.spread_bndes_aa:.2f}%",
+            "Spread Banco (Anual)": f"{self.spread_banco_aa:.2f}%",
+            "Taxa Total Anual": f"{self.taxa_total_anual}"
+        }
+
+        print("\nConfigurações da Simulação:")
+        for chave, valor in configuracoes.items():
+            print(f"{chave}: {valor}")
+
+        # Loop para calcular os pagamentos
         while True:
             # Determina as datas de aniversário para DUT e DUP
             if hasattr(self, 'amortizacao_a_aplicar') and self.amortizacao_a_aplicar > 0:
@@ -108,8 +133,7 @@ class SimuladorBNDES:
 
             # Calcula fatores
             fator_1, fator_2, fator_3, fator_4, tipo_fator = self.calcular_fatores(dup, dut, fator_4_anterior,
-                                                                       houve_pagamento_anterior)
-
+                                                                                   houve_pagamento_anterior)
 
             # Verifica os dados de pagamento (juros e/ou amortização)
             pagamento_info = self.verificar_data_pagamento(mes_atual)
@@ -144,7 +168,12 @@ class SimuladorBNDES:
             df.to_csv("simulador_resultados.csv", index=False)
             print("\nResultados exportados para 'simulador_resultados.csv'.")
 
-        return resultados
+        # Exibe os resultados em formato tabular
+        from tabulate import tabulate
+        print("\nResultados da Simulação:")
+        print(tabulate(resultados, headers="keys", tablefmt="grid"))
+
+        return resultados , configuracoes
 
     def calcular_parcelas(self, mes_atual, pagamento_info, fator_4):
         """
