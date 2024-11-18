@@ -94,14 +94,22 @@ with col8:
         value=5.75,
         help="Informe o spread anual aplicado pelo banco intermediário ao financiamento."
     )
+col9, col10 = st.columns([2,1])
+with col9:
+    valor_liberado = st.number_input(
+    "Valor do financiamento",
+    min_value=0.0,
+    value=0.0,
+    max_value= 50_000_000.0,
+    help="Informe o valor do financiamento."
+    )
+with col10:
+    data_contratacao = st.text_input(
+        "Data de Contratação (dd/mm/yyyy)",
+        value= "15/11/2024",
+        help="Informe a Data de Contratação no padrão: (dd/mm/yyyy)"
+    )
 
-valor_liberado = st.number_input(
-"Valor do financiamento",
-min_value=0.0,
-value=0.0,
-max_value= 50_000_000.0,
-help="Informe o valor do financiamento."
-)
 
 # Botão para realizar a simulação
 if st.button("Simular"):
@@ -121,8 +129,8 @@ if st.button("Simular"):
         else:
             # Inicializa o simulador com os parâmetros fornecidos
             simulador = SimuladorBNDES(
-                data_contratacao="15/10/2024",  # Aqui você pode ajustar o valor fixo ou parametrizado
-                valor_liberado=200_000.0,  # Ajustar conforme necessidade
+                data_contratacao= data_contratacao,
+                valor_liberado= valor_liberado,
                 carencia=carencia,
                 periodic_juros=3,  # Valor fixo
                 prazo_amortizacao=prazo_amortizacao,
