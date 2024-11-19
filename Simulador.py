@@ -80,9 +80,7 @@ class SimuladorBNDES:
             print(f"Erro ao buscar IPCA: {e}")
             return 0.44  # Valor padrão em caso de falha
 
-
-
-    def exibir_dados_pagamento(self, exportar_csv=False):
+    def exibir_dados_pagamento(self):
         """
         Exibe as configurações da simulação e os dados de pagamento em formato tabular.
         Opcionalmente exporta para CSV.
@@ -92,7 +90,7 @@ class SimuladorBNDES:
         houve_pagamento_anterior = None
         resultados = []
 
-        # Configurações da simulação
+        # Exibe as configurações da simulação
         configuracoes = {
             "Data de Contratação": self.data_contratacao.strftime("%d/%m/%Y"),
             "Valor Liberado": f"R$ {self.valor_liberado:,.2f}",
@@ -107,12 +105,18 @@ class SimuladorBNDES:
             "Taxa Total Anual": f"{self.taxa_total_anual}"
         }
 
+        print("\nConfigurações da Simulação:")
+        for chave, valor in configuracoes.items():
+            print(f"{chave}: {valor}")
+
         # Loop para calcular os pagamentos
         while True:
             # Determina as datas de aniversário para DUT e DUP
             if hasattr(self, 'amortizacao_a_aplicar') and self.amortizacao_a_aplicar > 0:
+                # Aplica a amortização acumulada no saldo devedor
                 self.saldo_devedor -= self.amortizacao_a_aplicar
                 self.quantidade_prestacoes_restantes -= 1
+                # Reseta o valor da amortização a aplicar
                 self.amortizacao_a_aplicar = 0
             data_aniversario_anterior = self.proxima_data_ipca(
                 self.data_contratacao + relativedelta(months=mes_atual)
@@ -145,7 +149,11 @@ class SimuladorBNDES:
 
             # Atualiza o fator_4_anterior
             fator_4_anterior = fator_4
-            houve_pagamento_anterior = detalhes_parcela['Vencimento'] == "-"
+            # Altera o cálculo dos fatores
+            if detalhes_parcela['Vencimento'] != "-":
+                houve_pagamento_anterior = False
+            else:
+                houve_pagamento_anterior = True
 
             # Interrompe o loop ao atingir o número máximo de parcelas
             if pagamento_info and pagamento_info["pagar_amortizacao"] and detalhes_parcela[
@@ -154,14 +162,9 @@ class SimuladorBNDES:
 
             mes_atual += 1
 
-        # Exporta para CSV se solicitado
-        if exportar_csv:
-            df = DataFrame(resultados)
-            df.to_csv("simulador_resultados.csv", index=False)
+        resultados = DataFrame(resultados)
 
-        # Converte resultados em DataFrame para compatibilidade com Streamlit
-        resultados_df = DataFrame(resultados)
-        return resultados_df, configuracoes
+        return resultados, configuracoes
 
     def calcular_parcelas(self, mes_atual, pagamento_info, fator_4):
         """
