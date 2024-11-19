@@ -35,9 +35,12 @@ class PDF(FPDF):
             self.ln()
             fill = not fill  # Alterna a cor de fundo para as linhas
 
+
+
+# Adicionando a logo do BNDES
+st.image("banco-bndes.svg", width= 250)
 # Título do app
 st.title("Simulador de Pagamentos BNDES")
-
 # Regras de prazo máximo e carência
 regras = {
     "BK Aquisição e Comercialização (FINAME)": {"prazo_max": 120, "carencia_max": 24, "taxa_bndes_fixo": 0.95},
