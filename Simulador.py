@@ -28,7 +28,7 @@ class SimuladorBNDES:
         self.juros_prefixados_aa = juros_prefixados_aa if juros_prefixados_aa != 0.0 else self.obter_tlp()
         self.spread_banco_aa = spread_banco_aa if spread_banco_aa is not 0.0 else 5.75  # Default
 
-        self.taxa_total_anual = self.juros_prefixados_aa + self.spread_bndes_aa + self.spread_banco_aa + (self.ipca_mensal * 12)
+        self.taxa_total_anual = self.calcular_taxa_total_anual()
 
         # Calcula a quantidade de prestações e converte taxas anuais para mensais
         self.feriados = [to_datetime(f, dayfirst=True).date() for f in feriados]
@@ -42,6 +42,19 @@ class SimuladorBNDES:
                                   self.spread_banco_am +
                                   self.ipca_mensal / 100)
 
+    def calcular_taxa_total_anual(self):
+        # mensal para anual
+        ipca_anual = (1 + (self.ipca_mensal / 100)) ** 12 - 1
+        self.taxa_total_anual = (
+                                        (1 + self.juros_prefixados_aa / 100) *
+                                        (1 + self.spread_bndes_aa / 100) *
+                                        (1 + self.spread_banco_aa / 100) *
+                                        (1 + ipca_anual) - 1
+                                ) * 100
+
+        return self.taxa_total_anual
+
+    
     @staticmethod
     def obter_tlp():
         """
