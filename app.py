@@ -1,6 +1,5 @@
 from fpdf import FPDF
 import streamlit as st
-from datetime import datetime
 from Simulador import SimuladorBNDES
 
 # Classe para geração de PDF com tabelas e quebra de página
@@ -74,12 +73,8 @@ with col1:
 with col2:
     prazo_amortizacao = st.number_input("Amortização (meses)", min_value=1, value=24)
 
-# Segunda linha de inputs
-col3, col4 = st.columns(2)
-with col3:
-    valor_liberado = st.number_input("Valor do financiamento", min_value=0.0, value=0.0, max_value=50_000_000.0)
-with col4:
-    data_contratacao = st.text_input("Data de Contratação (dd/mm/yyyy)", value="15/11/2024")
+valor_liberado = st.number_input("Valor do financiamento", min_value=0.0, max_value=50_000_000.0)
+
 
 
 # Validações
@@ -87,14 +82,8 @@ if carencia % 3 != 0:
     st.error("A carência deve ser múltiplo de 3.")
     erro = True
 
-if valor_liberado <= 0:
-    st.error("O valor do financiamento deve ser maior que zero.")
-    erro = True
-
-try:
-    datetime.strptime(data_contratacao, "%d/%m/%Y")
-except ValueError:
-    st.error("A data de contratação deve estar no formato DD/MM/AAAA.")
+if valor_liberado <= 0 or valor_liberado > 50000000:
+    st.error("O valor do financiamento deve ser maior que zero e não pode ultrapassar 50 milhões.")
     erro = True
 
 prazo_total = carencia + prazo_amortizacao
@@ -108,7 +97,7 @@ if not erro:
         try:
             # Inicializa o simulador com os parâmetros fornecidos
             simulador = SimuladorBNDES(
-                data_contratacao=data_contratacao,
+
                 valor_liberado=valor_liberado,
                 carencia=carencia,
                 periodic_juros=3,

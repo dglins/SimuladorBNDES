@@ -5,14 +5,18 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from lista_feriados import feriados
 import math
+import locale
+
+# Configura o locale para português do Brasil
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 class SimuladorBNDES:
-    def __init__(self, data_contratacao: str, valor_liberado: float, carencia: int,
+    def __init__(self, valor_liberado: float, carencia: int,
                  periodic_juros: int, prazo_amortizacao: int,
                  periodic_amortizacao: int, juros_prefixados_aa: float,
                  ipca_mensal: float = 0.0, spread_bndes_aa: float = 0.95, spread_banco_aa: float = 0.0):
         # Inicializa os parâmetros principais
-        self.data_contratacao = datetime.strptime(data_contratacao, "%d/%m/%Y")
+        self.data_contratacao = datetime(2024, 11, 15) #datetime.today()
         self.valor_liberado = valor_liberado
         self.saldo_devedor = valor_liberado
         self.carencia = carencia
@@ -115,7 +119,7 @@ class SimuladorBNDES:
             "IPCA Mensal": f"{self.ipca_mensal:.2f}%",
             "Spread BNDES (Anual)": f"{self.spread_bndes_aa:.2f}%",
             "Spread Banco (Anual)": f"{self.spread_banco_aa:.2f}%",
-            "Taxa Total Anual": f"{self.taxa_total_anual}"
+            "Taxa Total Anual": f"{self.taxa_total_anual:.2f}%"
         }
 
         print("\nConfigurações da Simulação:")
@@ -222,23 +226,27 @@ class SimuladorBNDES:
             if amortizacao_principal:
                 self.atualizar_saldo_devedor(amortizacao_principal)
 
-        # Retorna os detalhes calculados
+            # Formata os valores no padrão português
+
+        def formatar_valor(valor):
+            return locale.format_string("%.2f", valor, grouping=True) if isinstance(valor, (int, float)) else valor
+
+            # Retorna os detalhes calculados
+
         return {
             "Parcela": contador if contador else "-",
             "Vencimento": data_vencimento.strftime('%d/%m/%Y') if data_vencimento else "-",
-            "Amortização": round(amortizacao_principal, 2) if amortizacao_principal else "-",
-            "Juros BNDES": juros_bndes,
-            "Juros banco": juros_banco,
-            "Parcela Total": valor_parcela if valor_parcela else "-",
-            "Saldo Devedor": round(self.saldo_devedor, 2)
+            "Amortização": formatar_valor(round(amortizacao_principal, 2)) if amortizacao_principal else "-",
+            "Juros BNDES": formatar_valor(juros_bndes),
+            "Juros banco": formatar_valor(juros_banco),
+            "Parcela Total": formatar_valor(valor_parcela if valor_parcela else "-"),
+            "Saldo Devedor": formatar_valor(round(self.saldo_devedor, 2))
         }
 
     def proxima_data_ipca(self, data_input):
         """
         Retorna a próxima data de referência para o IPCA com base na data fornecida.
         """
-        if isinstance(data_input, str):
-            data_input = datetime.strptime(data_input, "%Y-%m-%d")
 
         ano = data_input.year
         mes = data_input.month
@@ -246,7 +254,6 @@ class SimuladorBNDES:
         if data_input.day == 15:
             dia_referencia = data_input.day
         elif data_input.day >= 15:
-            mes += 1
             if mes > 12:
                 mes = 1
                 ano += 1
@@ -312,10 +319,9 @@ class SimuladorBNDES:
         else:
             # Após a carência
             if (mes_atual - self.carencia) % self.periodic_amortizacao == 0:
-                # Verifica se o mês atual é um mês de pagamento de amortização
+
                 pagamento_info["pagar_amortizacao"] = True
                 pagamento_info["pagar_juros"] = True
-                # Calcula o número da parcela
                 pagamento_info["numero_parcela"] = (mes_atual - self.carencia) // self.periodic_amortizacao
 
         # Se nenhum pagamento é devido no mês atual, retorna None
@@ -406,7 +412,7 @@ class SimuladorBNDES:
             fator_4 = fator_1 * fator_2 * fator_3
             tipo_fator = "3 fat"
 
-        return round(fator_1, 18), round(fator_2,18) , round(fator_3,18) , round(fator_4, 18), tipo_fator
+        return round(fator_1, 16), round(fator_2,16) , round(fator_3,16) , round(fator_4, 16), tipo_fator
 
     def calcula_amortizacao_principal(self):
         """
