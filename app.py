@@ -108,7 +108,7 @@ if not erro:
             resultados_df, configuracoes = simulador.exibir_dados_pagamento()
 
             # Exibe os resultados em uma tabela
-            st.write("### Resultados da Simulação")
+            st.write(f"### Resultados da Simulação\n {produto}")
             st.dataframe(resultados_df, use_container_width=True)
             st.write("### Configurações da Simulação")
             st.json(configuracoes)
@@ -119,7 +119,7 @@ if not erro:
 
             # Configurações como texto
             pdf.set_font("Arial", size=8)
-            pdf.cell(0, 8, "Configurações da Simulação:", ln=True)
+            pdf.cell(0, 8, f"Simulação do Produto: {produto}", ln=True)
             for key, value in configuracoes.items():
                 pdf.cell(0, 8, f"{key}: {value}", ln=True)
 
