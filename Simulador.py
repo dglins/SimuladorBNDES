@@ -52,9 +52,9 @@ class SimuladorBNDES:
                                         (1 + ipca_anual) - 1
                                 ) * 100
 
-        return self.taxa_total_anual
+        return round(self.taxa_total_anual, 2)
 
-    
+
     @staticmethod
     def obter_tlp():
         """
