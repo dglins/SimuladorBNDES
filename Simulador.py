@@ -5,10 +5,8 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from lista_feriados import feriados
 import math
-import locale
+from babel.numbers import format_currency
 
-# Configura o locale para português do Brasil
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 class SimuladorBNDES:
     def __init__(self, valor_liberado: float, carencia: int,
@@ -229,7 +227,7 @@ class SimuladorBNDES:
             # Formata os valores no padrão português
 
         def formatar_valor(valor):
-            return locale.format_string("%.2f", valor, grouping=True) if isinstance(valor, (int, float)) else valor
+            return format_currency(valor, 'BRL', locale='pt_BR') if isinstance(valor, (int, float)) else valor
 
             # Retorna os detalhes calculados
 
