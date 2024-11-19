@@ -16,7 +16,7 @@ class SimuladorBNDES:
                  periodic_amortizacao: int, juros_prefixados_aa: float,
                  ipca_mensal: float = 0.0, spread_bndes_aa: float = 0.95, spread_banco_aa: float = 0.0):
         # Inicializa os parâmetros principais
-        self.data_contratacao = datetime(2024, 11, 15) #datetime.today()
+        self.data_contratacao = datetime.today()
         self.valor_liberado = valor_liberado
         self.saldo_devedor = valor_liberado
         self.carencia = carencia
