@@ -147,7 +147,7 @@ if not erro:
             st.write(f"### Resultados da Simulação\n {produto}")
             st.dataframe(resultados_df, use_container_width=True)
             st.write("### Configurações da Simulação")
-            st.json(configuracoes)
+            st.dataframe(configuracoes, height = 430, width= 500)
 
 
         except Exception as e:
