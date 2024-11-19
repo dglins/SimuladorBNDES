@@ -120,12 +120,6 @@ if not erro:
             # Gera os resultados da simulação
             resultados_df, configuracoes = simulador.exibir_dados_pagamento()
 
-            # Exibe os resultados em uma tabela
-            st.write(f"### Resultados da Simulação\n {produto}")
-            st.dataframe(resultados_df, use_container_width=True)
-            st.write("### Configurações da Simulação")
-            st.json(configuracoes)
-
             # Geração do PDF
             pdf = PDF()
             pdf.add_page()
@@ -156,5 +150,13 @@ if not erro:
                 file_name="simulacao_bndes.pdf",
                 mime="application/pdf",
             )
+
+            # Exibe os resultados em uma tabela
+            st.write(f"### Resultados da Simulação\n {produto}")
+            st.dataframe(resultados_df, use_container_width=True)
+            st.write("### Configurações da Simulação")
+            st.json(configuracoes)
+
+
         except Exception as e:
             st.error(f"Ocorreu um erro ao processar a simulação: {e}")
