@@ -1,6 +1,6 @@
 import requests
 import json
-from pandas import to_datetime
+from pandas import to_datetime, DataFrame
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from lista_feriados import feriados
@@ -80,6 +80,8 @@ class SimuladorBNDES:
             print(f"Erro ao buscar IPCA: {e}")
             return 0.44  # Valor padrão em caso de falha
 
+
+
     def exibir_dados_pagamento(self, exportar_csv=False):
         """
         Exibe as configurações da simulação e os dados de pagamento em formato tabular.
@@ -90,7 +92,7 @@ class SimuladorBNDES:
         houve_pagamento_anterior = None
         resultados = []
 
-        # Exibe as configurações da simulação
+        # Configurações da simulação
         configuracoes = {
             "Data de Contratação": self.data_contratacao.strftime("%d/%m/%Y"),
             "Valor Liberado": f"R$ {self.valor_liberado:,.2f}",
@@ -105,18 +107,12 @@ class SimuladorBNDES:
             "Taxa Total Anual": f"{self.taxa_total_anual}"
         }
 
-        print("\nConfigurações da Simulação:")
-        for chave, valor in configuracoes.items():
-            print(f"{chave}: {valor}")
-
         # Loop para calcular os pagamentos
         while True:
             # Determina as datas de aniversário para DUT e DUP
             if hasattr(self, 'amortizacao_a_aplicar') and self.amortizacao_a_aplicar > 0:
-                # Aplica a amortização acumulada no saldo devedor
                 self.saldo_devedor -= self.amortizacao_a_aplicar
                 self.quantidade_prestacoes_restantes -= 1
-                # Reseta o valor da amortização a aplicar
                 self.amortizacao_a_aplicar = 0
             data_aniversario_anterior = self.proxima_data_ipca(
                 self.data_contratacao + relativedelta(months=mes_atual)
@@ -146,13 +142,10 @@ class SimuladorBNDES:
                 "Mês": mes_atual,
                 **detalhes_parcela
             })
+
             # Atualiza o fator_4_anterior
             fator_4_anterior = fator_4
-            # Altera o cálculo dos fatores
-            if detalhes_parcela['Data Vencimento'] != "-":
-                houve_pagamento_anterior = False
-            else:
-                houve_pagamento_anterior = True
+            houve_pagamento_anterior = detalhes_parcela['Vencimento'] == "-"
 
             # Interrompe o loop ao atingir o número máximo de parcelas
             if pagamento_info and pagamento_info["pagar_amortizacao"] and detalhes_parcela[
@@ -163,21 +156,16 @@ class SimuladorBNDES:
 
         # Exporta para CSV se solicitado
         if exportar_csv:
-            import pandas as pd
-            df = pd.DataFrame(resultados)
+            df = DataFrame(resultados)
             df.to_csv("simulador_resultados.csv", index=False)
-            print("\nResultados exportados para 'simulador_resultados.csv'.")
 
-        # Exibe os resultados em formato tabular
-        from tabulate import tabulate
-        print("\nResultados da Simulação:")
-        print(tabulate(resultados, headers="keys", tablefmt="grid"))
-
-        return resultados , configuracoes
+        # Converte resultados em DataFrame para compatibilidade com Streamlit
+        resultados_df = DataFrame(resultados)
+        return resultados_df, configuracoes
 
     def calcular_parcelas(self, mes_atual, pagamento_info, fator_4):
         """
-        Calcula a amortização principal, juros e valor total da parcela.
+        Calcula a Amortização, juros e valor total da parcela.
         Atualiza o saldo devedor caso seja necessário.
 
         Parâmetros:
@@ -203,7 +191,7 @@ class SimuladorBNDES:
             )
             contador = pagamento_info["numero_parcela"] if pagamento_info["pagar_amortizacao"] else None
 
-            # Calcula amortização principal
+            # Calcula Amortização
             if pagamento_info["pagar_amortizacao"]:
                 amortizacao_principal = self.calcula_amortizacao_principal()
 
@@ -221,8 +209,8 @@ class SimuladorBNDES:
         # Retorna os detalhes calculados
         return {
             "Parcela": contador if contador else "-",
-            "Data Vencimento": data_vencimento.strftime('%d/%m/%Y') if data_vencimento else "-",
-            "Amortização Principal": round(amortizacao_principal, 2) if amortizacao_principal else "-",
+            "Vencimento": data_vencimento.strftime('%d/%m/%Y') if data_vencimento else "-",
+            "Amortização": round(amortizacao_principal, 2) if amortizacao_principal else "-",
             "Juros BNDES": juros_bndes,
             "Juros banco": juros_banco,
             "Parcela Total": valor_parcela if valor_parcela else "-",
@@ -406,10 +394,10 @@ class SimuladorBNDES:
 
     def calcula_amortizacao_principal(self):
         """
-        Calcula a amortização principal com base no saldo devedor atual e no número de parcelas restantes.
+        Calcula a Amortização com base no saldo devedor atual e no número de parcelas restantes.
 
         Retorna:
-        - Decimal: O valor da amortização principal para a parcela atual.
+        - Decimal: O valor da Amortização para a parcela atual.
         """
         self.amortizacao_principal = self.saldo_devedor / self.quantidade_prestacoes_restantes
         return self.amortizacao_principal
@@ -419,12 +407,12 @@ class SimuladorBNDES:
         Registra a amortização a ser aplicada no saldo devedor no mês seguinte.
 
         Parâmetros:
-        - amortizacao_principal (Decimal): O valor da amortização principal a ser aplicado no próximo mês.
+        - amortizacao_principal (Decimal): O valor da Amortização a ser aplicado no próximo mês.
         """
         if hasattr(self, 'amortizacao_a_aplicar') is False:
             self.amortizacao_a_aplicar = 0  # Inicializa o atributo caso não exista
 
-        # Adiciona a amortização principal ao registro para o próximo mês
+        # Adiciona a Amortização ao registro para o próximo mês
         self.amortizacao_a_aplicar += amortizacao_principal
 
     def calcular_juros_bndes(self, data_pagamento, saldo_devedor, fator_4):

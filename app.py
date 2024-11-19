@@ -1,14 +1,48 @@
+from fpdf import FPDF
 import streamlit as st
+from datetime import datetime
 from Simulador import SimuladorBNDES
 
-# Cria o app usando Streamlit
+# Classe para geração de PDF com tabelas e quebra de página
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Arial", size=12)
+        self.cell(0, 10, "Resultados da Simulação BNDES", ln=True, align="C")
+
+    def add_table(self, data, column_widths, headers):
+        self.set_font("Arial", size=10)
+        self.set_fill_color(200, 200, 200)  # Cinza claro para cabeçalho
+        self.set_text_color(0)
+        self.set_draw_color(50, 50, 100)
+        self.set_line_width(0.3)
+
+        # Cabeçalho da tabela
+        for i, header in enumerate(headers):
+            self.cell(column_widths[i], 7, header, border=1, align="C", fill=True)
+        self.ln()
+
+        # Dados da tabela
+        self.set_fill_color(240, 240, 240)  # Fundo alternado para linhas
+        fill = False
+        for row in data:
+            if self.get_y() > 260:  # Verifica se o espaço restante é suficiente
+                self.add_page()  # Adiciona uma nova página
+                for i, header in enumerate(headers):  # Reescreve o cabeçalho na nova página
+                    self.cell(column_widths[i], 7, header, border=1, align="C", fill=True)
+                self.ln()
+            for i, cell in enumerate(row):
+                self.cell(column_widths[i], 6, str(cell), border=1, align="C", fill=fill)
+            self.ln()
+            fill = not fill  # Alterna a cor de fundo para as linhas
+
+# Título do app
 st.title("Simulador de Pagamentos BNDES")
 
 # Regras de prazo máximo e carência
 regras = {
-    "BK Aquisição e Comercialização (FINAME)": {"prazo_max": 120, "carencia_max": 24},
-    "BNDES Automático - Projeto de Investimento": {"prazo_max": 240, "carencia_max": 36},
-    "BNDES Finame - Baixo Carbono": {"prazo_max": 120, "carencia_max": 24}  # Exemplo
+    "BK Aquisição e Comercialização (FINAME)": {"prazo_max": 120, "carencia_max": 24, "taxa_bndes_fixo": 0.95},
+    "BNDES Automático - Projeto de Investimento": {"prazo_max": 240, "carencia_max": 36, "taxa_bndes_fixo": 0.95},
+    "BNDES Finame - Baixo Carbono": {"prazo_max": 120, "carencia_max": 24, "taxa_bndes_fixo": 0.75},
 }
 
 # Seleção do produto
@@ -20,125 +54,54 @@ produto = st.selectbox(
 # Obtém os valores máximos com base no produto selecionado
 prazo_max = regras[produto]["prazo_max"]
 carencia_max = regras[produto]["carencia_max"]
-carencia_minima = 3
-
-st.write(f"**Regras do Produto Selecionado:**\n"
-         f"- Prazo + Carência Máximo: {prazo_max} meses\n"
-         f"- Carência Mínima: {carencia_minima} meses\n"
-         f"- Prazo Máximo: {prazo_max - carencia_minima} meses\n"
-         f"- Carência Máxima: {carencia_max} meses"
-         )
-
+taxa_bndes_fixo = regras[produto]["taxa_bndes_fixo"]
 
 # Entradas do usuário
 st.write("### Configurações do Simulador")
+erro = False  # Controla a exibição do botão de simulação
 
-# Inputs na mesma linha para períodos
-col1, col2, col3, col4 = st.columns([1,1,1, 1])
-with col1:
-    carencia = st.number_input(
-        "Carência (meses)",
-        min_value=3,
-        max_value=carencia_max,
-        step=3,  # Garante que o valor seja múltiplo de 3
-        value=3,
-        help="Informe o período de carência, que deve ser múltiplo de 3 (mín. 3 meses)."
-    )
-with col2:
-    prazo_amortizacao = st.number_input(
-        "Amortização (meses)",
-        min_value=1,
-        value=24,
-        help="Informe o prazo para amortização (tempo para quitação do saldo devedor)."
-    )
-with col3:
-    st.text_input(
-        "Per. Juros",
-        value="Trimestral",
-        help="A periodicidade do pagamento dos juros é Trimestral."
-    )
-with col4:
-    st.text_input(
-        "Per. Amortização",
-        value="Mensal",
-        help="A periodicidade do pagamento é mensal."
-    )
-# Inputs na mesma linha para taxas e spreads
-col5, col6, col7, col8 = st.columns([1, 1, 1, 1])
-with col5:
-    juros_prefixados_aa = st.number_input(
-        "Juros TLP (% a.a.)",
-        min_value=0.0,
-        value=0.0,
-        help="Se não informado, atualiza com as informações atuais do BC."
-    )
-with col6:
-    ipca_mensal = st.number_input(
-        "IPCA (% a.m.)",
-        min_value=0.0,
-        value=0.0,
-        help="Se não informado, atualiza com as informações atuais do BC."
-    )
-with col7:
-    spread_bndes_aa = st.number_input(
-        "Spread BNDES (% a.a.)",
-        min_value=0.95,
-        max_value=0.95,
-        value=0.95,
-        help="Spread anual aplicado pelo BNDES ao financiamento."
-    )
-with col8:
-    spread_banco_aa = st.number_input(
-        "Spread Banco (% a.a.)",
-        min_value=0.0,
-        value=5.75,
-        help="Informe o spread anual aplicado pelo banco intermediário ao financiamento."
-    )
-col9, col10 = st.columns([2,1])
-with col9:
-    valor_liberado = st.number_input(
-    "Valor do financiamento",
-    min_value=0.0,
-    value=0.0,
-    max_value= 50_000_000.0,
-    help="Informe o valor do financiamento."
-    )
-with col10:
-    data_contratacao = st.text_input(
-        "Data de Contratação (dd/mm/yyyy)",
-        value= "15/11/2024",
-        help="Informe a Data de Contratação no padrão: (dd/mm/yyyy)"
-    )
+# Inputs
+carencia = st.number_input("Carência (meses)", min_value=3, max_value=carencia_max, step=3, value=3)
+prazo_amortizacao = st.number_input("Amortização (meses)", min_value=1, value=24)
+valor_liberado = st.number_input("Valor do financiamento", min_value=0.0, value=0.0, max_value=50_000_000.0)
+data_contratacao = st.text_input("Data de Contratação (dd/mm/yyyy)", value="15/11/2024")
 
+# Validações
+if carencia % 3 != 0:
+    st.error("A carência deve ser múltiplo de 3.")
+    erro = True
 
-# Botão para realizar a simulação
-if st.button("Simular"):
-    # Validação do múltiplo de 3 para a carência
-    if carencia % 3 != 0:
-        st.error("O valor da carência deve ser múltiplo de 3.")
-    else:
-        prazo_total = carencia + prazo_amortizacao
+if valor_liberado <= 0:
+    st.error("O valor do financiamento deve ser maior que zero.")
+    erro = True
 
-        if prazo_total > prazo_max:
-            st.error(
-                f"O prazo total (Carência + Amortização) para o produto selecionado "
-                f"({produto}) é de no máximo {prazo_max} meses. Você informou {prazo_total} meses.\n\n"
-                f"Por favor, ajuste o período de carência ou o prazo de amortização para que o prazo total "
-                f"não ultrapasse o limite permitido."
-            )
-        else:
+try:
+    datetime.strptime(data_contratacao, "%d/%m/%Y")
+except ValueError:
+    st.error("A data de contratação deve estar no formato DD/MM/AAAA.")
+    erro = True
+
+prazo_total = carencia + prazo_amortizacao
+if prazo_total > prazo_max:
+    st.error(f"O prazo total não pode exceder {prazo_max} meses.")
+    erro = True
+
+# Botão de simular só aparece se não houver erros
+if not erro:
+    if st.button("Simular"):
+        try:
             # Inicializa o simulador com os parâmetros fornecidos
             simulador = SimuladorBNDES(
-                data_contratacao= data_contratacao,
-                valor_liberado= valor_liberado,
+                data_contratacao=data_contratacao,
+                valor_liberado=valor_liberado,
                 carencia=carencia,
-                periodic_juros=3,  # Valor fixo
+                periodic_juros=3,
                 prazo_amortizacao=prazo_amortizacao,
-                periodic_amortizacao=1,  # Valor fixo
-                juros_prefixados_aa=juros_prefixados_aa,
-                ipca_mensal=ipca_mensal,
-                spread_bndes_aa=spread_bndes_aa,
-                spread_banco_aa=spread_banco_aa
+                periodic_amortizacao=1,
+                juros_prefixados_aa=0.0,
+                ipca_mensal=0.0,
+                spread_bndes_aa=taxa_bndes_fixo,
+                spread_banco_aa=5.75,
             )
 
             # Gera os resultados da simulação
@@ -146,5 +109,39 @@ if st.button("Simular"):
 
             # Exibe os resultados em uma tabela
             st.write("### Resultados da Simulação")
-            st.dataframe(configuracoes, use_container_width=True)
             st.dataframe(resultados_df, use_container_width=True)
+            st.write("### Configurações da Simulação")
+            st.json(configuracoes)
+
+            # Geração do PDF
+            pdf = PDF()
+            pdf.add_page()
+
+            # Configurações como texto
+            pdf.set_font("Arial", size=8)
+            pdf.cell(0, 8, "Configurações da Simulação:", ln=True)
+            for key, value in configuracoes.items():
+                pdf.cell(0, 8, f"{key}: {value}", ln=True)
+
+            pdf.ln(8)  # Linha em branco para separação
+
+            # Resultados como tabela
+            headers = list(resultados_df.columns)
+            data = resultados_df.values.tolist()
+            column_widths = [15 if i < 2 else 28 for i in range(len(headers))]
+
+            # Adiciona a tabela ao PDF com as larguras personalizadas
+            pdf.add_table(data=data, column_widths=column_widths, headers=headers)
+
+            # Salva o PDF em memória
+            pdf_output = pdf.output(dest="S").encode("latin1")
+
+            # Botão de download do PDF
+            st.download_button(
+                label="Baixar PDF da Simulação",
+                data=pdf_output,
+                file_name="simulacao_bndes.pdf",
+                mime="application/pdf",
+            )
+        except Exception as e:
+            st.error(f"Ocorreu um erro ao processar a simulação: {e}")
