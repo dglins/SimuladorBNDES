@@ -45,6 +45,12 @@ regras = {
     "BNDES Finame - Baixo Carbono": {"prazo_max": 120, "carencia_max": 24, "taxa_bndes_fixo": 0.75},
 }
 
+
+# Entradas do usuário
+st.write("### Configurações do Simulador")
+erro = False  # Controla a exibição do botão de simulação
+
+
 # Seleção do produto
 produto = st.selectbox(
     "Produto",
@@ -56,15 +62,22 @@ prazo_max = regras[produto]["prazo_max"]
 carencia_max = regras[produto]["carencia_max"]
 taxa_bndes_fixo = regras[produto]["taxa_bndes_fixo"]
 
-# Entradas do usuário
-st.write("### Configurações do Simulador")
-erro = False  # Controla a exibição do botão de simulação
 
-# Inputs
-carencia = st.number_input("Carência (meses)", min_value=3, max_value=carencia_max, step=3, value=3)
-prazo_amortizacao = st.number_input("Amortização (meses)", min_value=1, value=24)
-valor_liberado = st.number_input("Valor do financiamento", min_value=0.0, value=0.0, max_value=50_000_000.0)
-data_contratacao = st.text_input("Data de Contratação (dd/mm/yyyy)", value="15/11/2024")
+
+# Primeira linha de inputs
+col1, col2 = st.columns(2)
+with col1:
+    carencia = st.number_input("Carência (meses)", min_value=3, max_value=carencia_max, step=3, value=3)
+with col2:
+    prazo_amortizacao = st.number_input("Amortização (meses)", min_value=1, value=24)
+
+# Segunda linha de inputs
+col3, col4 = st.columns(2)
+with col3:
+    valor_liberado = st.number_input("Valor do financiamento", min_value=0.0, value=0.0, max_value=50_000_000.0)
+with col4:
+    data_contratacao = st.text_input("Data de Contratação (dd/mm/yyyy)", value="15/11/2024")
+
 
 # Validações
 if carencia % 3 != 0:
