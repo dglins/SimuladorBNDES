@@ -1,5 +1,6 @@
 from fpdf import FPDF
 import streamlit as st
+
 from Simulador import SimuladorBNDES
 
 # Classe para geração de PDF com tabelas e quebra de página
@@ -145,6 +146,7 @@ if not erro:
 
             # Exibe os resultados em uma tabela
             st.write(f"### Resultados da Simulação\n {produto}")
+
             st.dataframe(resultados_df, use_container_width=True)
             st.write("### Configurações da Simulação")
             st.dataframe(configuracoes, height = 430, width= 500)

@@ -28,7 +28,7 @@ class SimuladorBNDES:
         # Busca valores da TLP e IPCA automaticamente, se não fornecidos
         self.ipca_mensal = ipca_mensal if ipca_mensal != 0.0 else self.obter_ipca()
         self.juros_prefixados_aa = juros_prefixados_aa if juros_prefixados_aa != 0.0 else self.obter_tlp()
-        self.spread_banco_aa = spread_banco_aa if spread_banco_aa is not 0.0 else 5.75  # Default
+        self.spread_banco_aa = spread_banco_aa if spread_banco_aa != 0.0 else 5.75  # Default
 
         self.taxa_total_anual = self.calcular_taxa_total_anual()
 
@@ -71,10 +71,10 @@ class SimuladorBNDES:
                 return valor_tlp
             else:
                 print("Erro ao obter a TLP. Verifique a conexão ou o endereço da API.")
-                return 1.15  # Valor padrão em caso de falha
+                return 6.43  # Valor padrão em caso de falha
         except Exception as e:
             print(f"Erro ao buscar TLP: {e}")
-            return 1.15  # Valor padrão em caso de falha
+            return 6.43  # Valor padrão em caso de falha
 
     @staticmethod
     def obter_ipca():
@@ -98,7 +98,6 @@ class SimuladorBNDES:
     def exibir_dados_pagamento(self):
         """
         Exibe as configurações da simulação e os dados de pagamento em formato tabular.
-        Opcionalmente exporta para CSV.
         """
         mes_atual = 0
         fator_4_anterior = None
@@ -108,16 +107,16 @@ class SimuladorBNDES:
         # Exibe as configurações da simulação
         configuracoes = {
             "Data de Contratação": self.data_contratacao.strftime("%d/%m/%Y"),
-            "Valor Liberado": f"R$ {self.valor_liberado:,.2f}",
+            "Valor Liberado": f"R$ {self.valor_liberado:,.2f}".replace('.', '#').replace(',', '.').replace('#', ','),
             "Período de Carência (meses)": self.carencia,
             "Periodicidade de Juros (meses)": self.periodic_juros,
             "Prazo de Amortização (meses)": self.prazo_amortizacao,
             "Periodicidade de Amortização (meses)": self.periodic_amortizacao,
-            "Juros Prefixados (Anual)": f"{self.juros_prefixados_aa:.2f}%",
-            "IPCA Mensal": f"{self.ipca_mensal:.2f}%",
-            "Spread BNDES (Anual)": f"{self.spread_bndes_aa:.2f}%",
-            "Spread Banco (Anual)": f"{self.spread_banco_aa:.2f}%",
-            "Taxa Total Anual": f"{self.taxa_total_anual:.2f}%"
+            "Juros Prefixados (Anual)": f"{self.juros_prefixados_aa:.2f}%".replace('.', ','),
+            "IPCA Mensal": f"{self.ipca_mensal:.2f}%".replace('.', ','),
+            "Spread BNDES (Anual)": f"{self.spread_bndes_aa:.2f}%".replace('.', ','),
+            "Spread Banco (Anual)": f"{self.spread_banco_aa:.2f}%".replace('.', ','),
+            "Taxa Total Anual": f"{self.taxa_total_anual:.2f}%".replace('.', ','),
         }
 
         print("\nConfigurações da Simulação:")
@@ -156,15 +155,12 @@ class SimuladorBNDES:
             # Calcula a parcela de amortização
             detalhes_parcela = self.calcular_parcelas(mes_atual, pagamento_info, fator_4)
 
-            # Armazena os resultados
             resultados.append({
                 "Mês": mes_atual,
                 **detalhes_parcela
             })
 
-            # Atualiza o fator_4_anterior
             fator_4_anterior = fator_4
-            # Altera o cálculo dos fatores
             if detalhes_parcela['Vencimento'] != "-":
                 houve_pagamento_anterior = False
             else:
