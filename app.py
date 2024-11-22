@@ -1,6 +1,6 @@
 from fpdf import FPDF
 import streamlit as st
-
+import pandas as pd
 from Simulador import SimuladorBNDES
 
 # Classe para geração de PDF com tabelas e quebra de página
@@ -112,6 +112,10 @@ if not erro:
 
             # Gera os resultados da simulação
             resultados_df, configuracoes = simulador.exibir_dados_pagamento()
+            # Atualizar o valor da chave
+            configuracoes["Periodicidade de Juros (meses)"] = "Trimestral"
+            configuracoes["Periodicidade de Amortização (meses)"] = "Mensal"
+
 
             # Geração do PDF
             pdf = PDF()
@@ -148,8 +152,16 @@ if not erro:
             st.write(f"### Resultados da Simulação\n {produto}")
 
             st.dataframe(resultados_df, use_container_width=True)
+
+
+
             st.write("### Configurações da Simulação")
-            st.dataframe(configuracoes, height = 430, width= 500)
+            configuracoes =  pd.DataFrame({
+                "Parâmetros": configuracoes.keys(),
+                "Valores": configuracoes.values()
+                })
+            configuracoes = configuracoes.reset_index(drop=True)
+            st.table(configuracoes)
 
 
         except Exception as e:

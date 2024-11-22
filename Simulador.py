@@ -110,18 +110,14 @@ class SimuladorBNDES:
             "Valor Liberado": f"R$ {self.valor_liberado:,.2f}".replace('.', '#').replace(',', '.').replace('#', ','),
             "Período de Carência (meses)": self.carencia,
             "Periodicidade de Juros (meses)": self.periodic_juros,
-            "Prazo de Amortização (meses)": self.prazo_amortizacao,
             "Periodicidade de Amortização (meses)": self.periodic_amortizacao,
+            "Prazo de Amortização (meses)": self.prazo_amortizacao,
             "Juros Prefixados (Anual)": f"{self.juros_prefixados_aa:.2f}%".replace('.', ','),
             "IPCA Mensal": f"{self.ipca_mensal:.2f}%".replace('.', ','),
             "Spread BNDES (Anual)": f"{self.spread_bndes_aa:.2f}%".replace('.', ','),
             "Spread Banco (Anual)": f"{self.spread_banco_aa:.2f}%".replace('.', ','),
             "Taxa Total Anual": f"{self.taxa_total_anual:.2f}%".replace('.', ','),
         }
-
-        print("\nConfigurações da Simulação:")
-        for chave, valor in configuracoes.items():
-            print(f"{chave}: {valor}")
 
         # Loop para calcular os pagamentos
         while True:
