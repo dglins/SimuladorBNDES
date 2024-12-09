@@ -36,7 +36,10 @@ class PDF(FPDF):
             fill = not fill  # Alterna a cor de fundo para as linhas
 
 
-
+st.set_page_config(
+    page_title="Simulador BNDES",
+    layout="wide"
+)
 # Adicionando a logo do BNDES
 st.image("banco-bndes.svg", width= 250)
 # Título do app
